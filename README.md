@@ -142,6 +142,53 @@ Additional arguments can be passed to the analyzers by setting the `CLANG_TIDY_A
 Ccache can be enabled by configuring with `-DUSE_CCACHE=<ON | OFF>`.
 
 ## FAQ
+> What is .github/workflows used for?
+The directory contains several files defining CI steps in github.
+
+> What is all used for?
+This script adds all subprojects to a single build to allow IDEs understand the full project structure.
+
+> What is documentation used for?
+Automatic documentation and deployment with Doxygen and GitHub Pages.
+
+> What is standalone used for?
+Build the executable target. Default the target of the whole project is library.
+
+> What is test?
+The directory is used for unit test.
+
+> What is .clang-format and .cmake-format used for?
+Code formatting enforced by clang-format and cmake-format via Format.cmake.
+
+> What is codecov.yaml?
+This is used for code coverage of test cases.
+
+> What is CPM?
+CPM.cmake is a cross-platform CMake script that adds dependency management capabilities to CMake. Add package from github source code.It's built as a thin wrapper around CMake's FetchContent module that adds version control, caching, a simple API and more. 
+```cmake
+cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+
+# create project
+project(MyProject)
+
+# add executable
+add_executable(main main.cpp)
+
+# add dependencies
+include(cmake/CPM.cmake)
+# add package from github source code.
+CPMAddPackage("gh:fmtlib/fmt#7.1.3")
+CPMAddPackage("gh:nlohmann/json@3.10.5")
+CPMAddPackage("gh:catchorg/Catch2@3.4.0")
+
+# link dependencies
+target_link_libraries(main fmt::fmt nlohmann_json::nlohmann_json Catch2::Catch2WithMain)
+```
+
+> What is cmake used for?
+The directory contains several cmake scripts.
+The tools.cmake file is used to import additional tools on-demand through CMake configuration arguments.
+For exmaple:Sanitizers,Static Analyzers,Ccache.
 
 > Can I use this for header-only libraries?
 

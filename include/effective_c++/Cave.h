@@ -8,7 +8,7 @@ namespace effective {
    * @brief The Cave class provide address for animal living
    * @details The Cave class should not be derived
    */
-  class Cave final : private Home {
+  class Cave final : public Home {
   public:
     Cave() = default;
     Cave(const Cave& original) = default;

@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint>
 #ifndef EFFECTIVE_LOCK_H_
 #  define EFFECTIVE_LOCK_H_
 #  include <memory>

@@ -2,7 +2,7 @@
 #ifndef EFFECTIVE_SPARROW_H_
 #  define EFFECTIVE_SPARROW_H_
 
-#  include "Bird.h"
+#  include "bird.h"
 
 namespace effective {
   //> 虚继承，承诺给派生类共享自己的虚基类。用于应对多重继承下，多个基类冲突的情况。

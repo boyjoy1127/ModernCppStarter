@@ -3,8 +3,8 @@
 #ifndef EFFECTIVE_BRID_H_
 #  define EFFECTIVE_BRID_H_
 
-#  include "Animal.h"
-#  include "Nest.h"
+#  include "animal.h"
+#  include "nest.h"
 
 namespace effective {
   //> Bird是一个抽象类，因为Fly为纯虚函数。抽象类无法实例化。

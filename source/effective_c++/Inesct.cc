@@ -1,4 +1,4 @@
-#include "effective_c++/Insect.h"
+#include "effective_c++/insect.h"
 
 using namespace effective;
 

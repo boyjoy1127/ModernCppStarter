@@ -2,8 +2,8 @@
 
 #ifndef EFFECTIVE_SPARROWPECKER_H_
 #  define EFFECTIVE_SPARROWPECKER_H_
-#  include "Sparrow.h"
-#  include "Woodpecker.h"
+#  include "sparrow.h"
+#  include "wood_pecker.h"
 
 namespace effective {
   // 多重继承之菱形继承，Sparrow和Woodpecker分别虚拟继承了Bird。

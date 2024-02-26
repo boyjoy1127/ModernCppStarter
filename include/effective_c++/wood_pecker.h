@@ -2,7 +2,7 @@
 #ifndef EFFECTIVE_WOODPECKER_H_
 #  define EFFECTIVE_WOODPECKER_H_
 
-#  include "Bird.h"
+#  include "bird.h"
 
 namespace effective {
   //> 虚继承，承诺给派生类共享自己的虚基类。用于应对多重继承下，多个基类冲突的情况。
@@ -11,8 +11,8 @@ namespace effective {
   class Woodpecker : virtual public Bird {
   public:
     Woodpecker() = default;
-    Woodpecker(const Woodpecker& original) = default;
-    Woodpecker& operator=(const Woodpecker& right) = default;
+    Woodpecker(const Woodpecker& original) = delete;
+    Woodpecker& operator=(const Woodpecker& right) = delete;
     Woodpecker(Woodpecker&& original) = default;
     Woodpecker& operator=(Woodpecker&& right) = default;
     //> 在多态下，对象销毁时先调用~Woodpecker()，然后调用~Bird()。

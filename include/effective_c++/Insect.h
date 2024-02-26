@@ -2,7 +2,7 @@
 #ifndef EFFECTIVE_INSECT_H_
 #  define EFFECTIVE_INSECT_H_
 
-#  include "Animal.h"
+#  include "animal.h"
 
 namespace effective {
   //> Insect是一个抽象类，因为Fly为纯虚函数。抽象类无法实例化。

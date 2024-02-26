@@ -1,4 +1,4 @@
-#include "effective_c++/Clock.h"
+#include "effective_c++/clock.h"
 
 #include <iostream>
 #include <thread>

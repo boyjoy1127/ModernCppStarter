@@ -1,9 +1,9 @@
-#include "effective_c++/SparrowPecker.h"
+#include "effective_c++/sparrow_pecker.h"
 
 #include <iostream>
 
-#include "effective_c++/Sparrow.h"
-#include "effective_c++/Woodpecker.h"
+#include "effective_c++/sparrow.h"
+#include "effective_c++/wood_pecker.h"
 
 using std::cout;
 using namespace effective;

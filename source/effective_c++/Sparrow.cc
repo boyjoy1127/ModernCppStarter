@@ -1,4 +1,4 @@
-#include "effective_c++/Sparrow.h"
+#include "effective_c++/sparrow.h"
 
 using namespace effective;
 

@@ -1,4 +1,4 @@
-#include "effective_c++/Animal.h"
+#include "effective_c++/animal.h"
 
 //> 不要导入整个命名空间std，因为会有符号名冲突。导入具体的符号可以将冲突范围最小化。
 using std::string;

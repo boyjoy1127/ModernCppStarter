@@ -3,7 +3,7 @@
 #  define EFFECTIVE_HOME_H_
 #  include <string>
 
-#  include "Clock.h"
+#  include "clock.h"
 
 namespace effective {
   /**

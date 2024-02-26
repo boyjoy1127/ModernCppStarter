@@ -1,4 +1,4 @@
-#include "effective_c++/Bird.h"
+#include "effective_c++/bird.h"
 
 #include <memory>
 

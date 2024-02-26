@@ -1,8 +1,8 @@
 #pragma once
 #ifndef EFFECTIVE_CAVE_H_
 #  define EFFECTIVE_CAVE_H_
-#  include "Home.h"
-#  include "Lock.h"
+#  include "home.h"
+#  include "lock.h"
 namespace effective {
   /**
    * @brief The Cave class provide address for animal living

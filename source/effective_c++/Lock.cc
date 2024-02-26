@@ -1,4 +1,4 @@
-#include "effective_c++/Lock.h"
+#include "effective_c++/lock.h"
 
 #include <mutex>
 

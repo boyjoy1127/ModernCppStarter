@@ -29,8 +29,8 @@ namespace effective {
     virtual ~Home();
 
     /**
-     * @brief Construct the Home object with name and weight.
-     * @param name The name of the Home.
+     * @brief Construct the Home object with address.
+     * @param name The address of the Home.
      */
     explicit Home(std::string address);  //>此处使用explicit防止单参构造函数用于隐式类型转换
 
@@ -41,13 +41,13 @@ namespace effective {
     //> healthValue称为doHealthValue的包装器。
     //> 除了用模板方法可以替代virtual函数。也可以采用策略模式+函数指针/函数对象，来实现。
     //> 具体参考Effective C++ Item35.
-    int healthValue() const;
+    std::string healthValue() const;
     //> 这里定义draw为public non-virtual带有默认参数，因为带有默认参数的函数不适合定义为虚函数
     //> 所以这里定义doDraw()为virtual，它在draw()中被调用。让派生类可以重写doDraw()。
     //> 这就是Effective C++ Item37中提倡的行为。
-    void draw(int color = 1) const;
+    std::string draw(int color = 1) const;
     // boardcast the address to the habitant.
-    void boardcastAddress() const;
+    std::string boardcastAddress() const;
 
   protected:
     std::string address_;
@@ -55,8 +55,8 @@ namespace effective {
   private:
     //> doHealthValue是private级别，派生类访问不到，但是派生类可以重写属于自己的函数。
     //> healtValue根据派生类对象调用对应的doHealthValue()函数。
-    virtual int doHealthValue() const;
-    virtual void doDraw(int color) const = 0;
+    virtual std::string doHealthValue() const;
+    virtual std::string doDraw(int color) const = 0;
     //> 通过私有继承方式重写onTick，可以防止Home的调用者调用onTick。
     //> 且私有继承表明 Home is not a Clock。
     //> 不过这种写法虽然可以防止Home派生类调用onTick(),但无法防止Home的派生类重写onTick。
@@ -65,13 +65,13 @@ namespace effective {
     //> 私有成员函数和成员变量，都是用//进行注释。
     // This function is responsible for sending the location of the broadcaster at regular
     // intervals to help the animal to find its way home.
-    virtual void onTick() const;
+    virtual std::string onTick() const;
     //> 当只想继承并重写某个虚函数的时候，可以用一下方法：
     //> 定义转交函数，私有继承+重写的方式，可以选择只继承Clock的tick()函数。
     //> Clock::stop()私有继承体系下不会被暴露出去。
     // Override tick from Clock. The class only need tick() to support the implementation of
     // boardcastAddress fucntion.
-    virtual void tick() const;
+    virtual std::string tick() const;
   };
 }  // namespace effective
 #endif  // EFFECTIVE_HOME_H_

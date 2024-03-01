@@ -1,6 +1,7 @@
 #pragma once
 #ifndef EFFECTIVE_CLOCK_H_
 #  define EFFECTIVE_CLOCK_H_
+#  include <string>
 
 namespace effective {
   /**
@@ -11,11 +12,11 @@ namespace effective {
   public:
     Clock() = default;
     explicit Clock(int tickFrequency);
-    virtual void tick() const;
+    virtual std::string tick() const;
     virtual void stop();
 
   private:
-    virtual void onTick() const;
+    virtual std::string onTick() const;
     int tick_frequency;
     bool is_running{true};
   };

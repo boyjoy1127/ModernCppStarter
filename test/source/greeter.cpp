@@ -1,8 +1,7 @@
-#include <doctest/doctest.h>
-#include <greeter/greeter.h>
-#include <greeter/version.h>
+#include "greeter/greeter.h"
 
-#include <string>
+#include "doctest/doctest.h"
+#include "greeter/version.h"
 
 TEST_CASE("Greeter") {
   using namespace greeter;

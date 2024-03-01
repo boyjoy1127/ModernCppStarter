@@ -1,21 +1,14 @@
-#include <doctest/doctest.h>
-#include <greeter/greeter.h>
-#include <greeter/version.h>
+#include "effective_c++/cave.h"
 
-#include <string>
+#include "doctest/doctest.h"
 
-TEST_CASE("Greeter") {
-  using namespace greeter;
-
-  Greeter greeter("Tests");
-
-  CHECK(greeter.greet(LanguageCode::EN) == "Hello, Tests!");
-  CHECK(greeter.greet(LanguageCode::DE) == "Hallo Tests!");
-  CHECK(greeter.greet(LanguageCode::ES) == "¡Hola Tests!");
-  CHECK(greeter.greet(LanguageCode::FR) == "Bonjour Tests!");
-}
-
-TEST_CASE("Greeter version") {
-  static_assert(std::string_view(GREETER_VERSION) == std::string_view("1.0"));
-  CHECK(std::string(GREETER_VERSION) == std::string("1.0"));
+TEST_CASE("Cave") {
+  using namespace effective;
+  auto one_cave = Cave("ParaMountain");
+  one_cave.boardcastAddress();
+  CHECK(one_cave.draw(3) == "let paint the house as Brown");
+  CHECK(one_cave.healthValue() == "before check health of full Cave after.");
+  CHECK(one_cave.GetAddress("decorate ") == "decorate ParaMountain");
+  CHECK(one_cave.GetAddress() == "ParaMountain");
+  CHECK(one_cave.boardcastAddress() == "This from home begin send address Tick begin My cave address is : ParaMountainMy cave address is : ParaMountainMy cave address is : ParaMountainMy cave address is : ParaMountainMy cave address is : ParaMountainMy cave address is : ParaMountainMy cave address is : ParaMountainMy cave address is : ParaMountainMy cave address is : ParaMountainMy cave address is : ParaMountainend.");
 }

@@ -17,10 +17,16 @@ namespace effective {
     Cave& operator=(Cave&& right) = delete;
     virtual ~Cave() = default;
 
+    /**
+     * @brief Construct the Cave object with address.
+     * @param name The address of the Home.
+     */
+    explicit Cave(std::string address);
+
   private:
-    virtual int doHealthValue() const override;
-    virtual void doDraw(int color) const override;
-    virtual void onTick() const override;
+    virtual std::string doHealthValue() const override;
+    virtual std::string doDraw(int color) const override;
+    virtual std::string onTick() const override;
     Lock key;  // This key is used by animal, only one animal could stay in the Cave at one time.
   };
 }  // namespace effective

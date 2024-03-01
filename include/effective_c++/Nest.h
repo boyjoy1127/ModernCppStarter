@@ -18,9 +18,9 @@ namespace effective {
     virtual ~Nest() = default;
 
   private:
-    virtual int doHealthValue() const override;
-    virtual void doDraw(int color) const override;
-    virtual void onTick() const override;
+    virtual std::string doHealthValue() const override;
+    virtual std::string doDraw(int color) const override;
+    virtual std::string onTick() const override;
 
     Lock key;  // This key is used by bird, only one bird could stay in the nest at one time.
   };

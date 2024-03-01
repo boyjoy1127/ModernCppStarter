@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 project(GreeterTests LANGUAGES CXX)
+# this command for clangd to generate compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---- Options ----
 

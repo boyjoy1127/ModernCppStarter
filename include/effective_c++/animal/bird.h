@@ -4,7 +4,7 @@
 #  define EFFECTIVE_BRID_H_
 
 #  include "animal.h"
-#  include "nest.h"
+#  include "effective_c++/home/nest.h"
 
 namespace effective {
   //> Bird是一个抽象类，因为Fly为纯虚函数。抽象类无法实例化。

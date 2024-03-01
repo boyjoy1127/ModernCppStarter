@@ -1,8 +1,8 @@
 #pragma once
 #ifndef EFFECTIVE_NEST_H_
 #  define EFFECTIVE_NEST_H_
-#  include "home.h"
-#  include "lock.h"
+#  include "effective_c++/home/home.h"
+#  include "effective_c++/lock.h"
 namespace effective {
   /**
    * @brief The Nest class provide address for animal living

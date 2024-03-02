@@ -8,11 +8,19 @@
 #  include "effective_c++/home/home.h"
 #  include "effective_c++/home/nest.h"
 namespace effective {
-
+  //> Effective Modern C++ Item18
+  /**
+   * @brief The HomeFactory class produced kinds of home derived classes.
+   * @details Produced kinds of home derived classes.
+   */
   class HomeFactory {
   public:
     //> 声明成constexpr是为了保证它是编译期可见的，这样才能让依赖它的模板函数在编译器可以通过编译。
     //> 声明成static是希望它可以脱离HomeFactory对象的调用依赖，可以直接以函数形式被调用。
+    /**
+     * @brief This function is a deleter for unique_pointer.
+     * @param home Home pointer type.
+     */
     constexpr static auto delHome = [](Home* home) {
       std::cout << "Record once.";
       delete home;

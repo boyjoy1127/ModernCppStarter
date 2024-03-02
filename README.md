@@ -143,7 +143,7 @@ Ccache can be enabled by configuring with `-DUSE_CCACHE=<ON | OFF>`.
 
 ## FAQ
 > How to set cpm cache to avoid downloading third party package everytime?
-export CPM_SOURCE_CACHE=$HOME/VSProjects/C++Learning/ModernCppStarter/.cpm_cache
+export CPM_SOURCE_CACHE=$HOME/VSProjects/C++Learning/ModernCppStarter/.cpm_cache .
 
 > What is .github/workflows used for?
 

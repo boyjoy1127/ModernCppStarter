@@ -8,7 +8,7 @@
 namespace effective {
   /**
    * @brief The Home class provide address for animal living
-   * @details The Home class should not be derived
+   * @details The Home class should be derived
    */
   class Home : private Clock {
     //> 按照public，protected，private的顺序进行声明，访问范围内部按照先函数后变量的方式排布。

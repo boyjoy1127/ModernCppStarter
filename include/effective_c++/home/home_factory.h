@@ -1,8 +1,10 @@
 #pragma once
+#include <memory>
 #ifndef EFFECTIVE_HOME_FACTORY_H_
 #  define EFFECTIVE_HOME_FACTORY_H_
 #  include <iostream>
 #  include <string>
+#  include <unordered_map>
 
 #  include "effective_c++/home/cave.h"
 #  include "effective_c++/home/home.h"
@@ -37,12 +39,26 @@ namespace effective {
     auto makeHome(std::string type) {
       std::unique_ptr<Home, decltype(delHome)> result(nullptr, delHome);
       if (type == "Nest") {
-        result.reset(new Nest());
+        result.reset(new Nest("ParaNest"));
       } else if (type == "Cave") {
         result.reset(new Cave("ParaMountain"));
       }
       return result;
     }
+    /**
+     * @brief Get home by type from cache.
+     * @param type the type of the home.
+     * @return The return type is shared_ptr, it points to a home.
+     */
+    std::shared_ptr<Home> getHome(std::string type);
+    /**
+     * @brief Get the cache size.
+     * @return The return the size of the cache.
+     */
+    int getCacheSize();
+
+  private:
+    std::unordered_map<std::string, std::weak_ptr<Home>> cache;
   };
 }  // namespace effective
 #endif  // EFFECTIVE_HOME_FACTORY_H_

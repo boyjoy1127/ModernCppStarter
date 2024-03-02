@@ -28,7 +28,7 @@ namespace effective {
   private:
     //> RAII类只需要一个共享指针成员变量，就可以实现reference-counting copying的行为。
     std::shared_ptr<std::mutex> mutex_ptr_;
-    std::string* users;  // 足够大的一个string数组，存储哪些调用者持有此mutex
+    std::string* users = new std::string[1];  // 足够大的一个string数组，存储哪些调用者持有此mutex
   };
 }  // namespace effective
 #endif  // EFFECTIVE_LOCK_H_

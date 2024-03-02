@@ -1,14 +1,17 @@
 #include "effective_c++/home/nest.h"
 
 using namespace effective;
+using std::string;
 
-std::string Nest::doHealthValue() const { return "check health of full Nest"; }
+Nest::Nest(string address) : Home(address) {}
 
-std::string Nest::doDraw(int color) const {
+string Nest::doHealthValue() const { return "check health of full Nest"; }
+
+string Nest::doDraw(int color) const {
   if (color == 2) {
     return "let paint the house as Blue";
   }
   return "bad color, can not paint.";
 }
 
-std::string Nest::onTick() const { return "My nest address is : " + address_; }
+string Nest::onTick() const { return "My nest address is : " + address_; }

@@ -17,6 +17,12 @@ namespace effective {
     Nest& operator=(Nest&& right) = delete;
     virtual ~Nest() = default;
 
+    /**
+     * @brief Construct the Nest object with address.
+     * @param name The address of the Home.
+     */
+    explicit Nest(std::string address);
+
   private:
     virtual std::string doHealthValue() const override;
     virtual std::string doDraw(int color) const override;

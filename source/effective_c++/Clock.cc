@@ -13,7 +13,7 @@ string Clock::tick() const {
   using std::this_thread::sleep_for;
   auto num = 0;
   string result = "Tick begin ";
-  while (is_running && (num < 10)) {
+  while (is_running && (num < 3)) {
     num++;
     result += onTick();
     // sleep for 1000 ms.

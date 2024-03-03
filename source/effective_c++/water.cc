@@ -32,8 +32,14 @@ Water::Water(Water&& rhs) = default;
 Water& Water::operator=(Water&& rhs) = default;
 
 Water::Water(const Water& rhs) : pimpl_(std::make_unique<Impl>(*rhs.pimpl_)) {}
-
+//> Effective C++ 10: 为了实现连锁赋值，赋值操作符必须返回一个refernce to *this。
+//> Effective C++ 11: 考虑到使用operator=进行自我赋值时的正确性，需要仔细考虑operator内部的实现。
+//> 此处如果使用的是裸指针，则需要有更多的考虑，因为涉及到new和delete。
+//> Effective C++ 12：拷贝构造和拷贝赋值在自定义实现时，需要完成每个元素的拷贝，
+//> 如果是继承类，还需要调用base class的拷贝。不要另copy赋值函数调用copy构造函数，
+//> 因为这样是在试图构造一个已经存在的对象，但是此对象由于尚未构建完成，调用它的拷贝构造函数会出错。
 Water& Water::operator=(const Water& rhs) {
   *pimpl_ = *rhs.pimpl_;
+  // this(rhs);//编译器会报错，无法调用拷贝构造函数
   return *this;
 };

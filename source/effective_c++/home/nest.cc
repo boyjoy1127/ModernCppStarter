@@ -5,13 +5,8 @@ using std::string;
 
 Nest::Nest(string address) : Home(address) {}
 
-string Nest::doHealthValue() const { return "check health of full Nest"; }
+string Nest::DoHealthValue() const { return "check health of full Nest"; }
 
-string Nest::doDraw(int color) const {
-  if (color == 2) {
-    return "let paint the house as Blue";
-  }
-  return "bad color, can not paint.";
-}
+string Nest::DoDraw(Color color) const { return "let paint the nest as " + color.color_name(); }
 
-string Nest::onTick() const { return "My nest address is : " + address_; }
+string Nest::OnTick() const { return "My nest address is : " + address_; }

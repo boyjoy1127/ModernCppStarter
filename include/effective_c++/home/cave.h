@@ -24,9 +24,9 @@ namespace effective {
     explicit Cave(std::string address);
 
   private:
-    virtual std::string doHealthValue() const override;
-    virtual std::string doDraw(int color) const override;
-    virtual std::string onTick() const override;
+    virtual std::string DoHealthValue() const override;
+    virtual std::string DoDraw(Color color) const override;
+    virtual std::string OnTick() const override;
     Lock key;  // This key is used by animal, only one animal could stay in the Cave at one time.
   };
 }  // namespace effective

@@ -23,7 +23,7 @@ namespace effective {
     ~Lock();
     //> 有时候RAII需要将内部原始资源暴露出来，提供显示转换API。
     //> 也可以提供隐式转换operator()，但是隐式转换相对容易出错，建议尽量使用显示转换。
-    std::mutex* get() const;
+    std::mutex* Get() const;
 
   private:
     //> RAII类只需要一个共享指针成员变量，就可以实现reference-counting copying的行为。

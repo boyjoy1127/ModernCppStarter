@@ -5,13 +5,8 @@ using namespace effective;
 
 Cave::Cave(string address) : Home(address) {}
 
-string Cave::doHealthValue() const { return "check health of full Cave"; }
+string Cave::DoHealthValue() const { return "check health of full Cave"; }
 
-string Cave::doDraw(int color) const {
-  if (color == 3) {
-    return "let paint the house as Brown";
-  }
-  return "bad color, can not paint.";
-}
+string Cave::DoDraw(Color color) const { return "let paint the cave as " + color.color_name(); }
 
-string Cave::onTick() const { return "My cave address is : " + address_; }
+string Cave::OnTick() const { return "My cave address is : " + address_; }

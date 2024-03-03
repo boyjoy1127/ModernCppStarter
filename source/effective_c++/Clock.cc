@@ -5,22 +5,22 @@
 using std::string;
 using namespace effective;
 
-Clock::Clock(int tickFrequency) : tick_frequency(tickFrequency) {}
+Clock::Clock(int tickFrequency) : tick_frequency_(tickFrequency) {}
 
-string Clock::onTick() const { return "tick "; }
+string Clock::OnTick() const { return "tick "; }
 
-string Clock::tick() const {
+string Clock::Tick() const {
   using std::this_thread::sleep_for;
   auto num = 0;
   string result = "Tick begin ";
-  while (is_running && (num < 3)) {
+  while (is_running_ && (num < 3)) {
     num++;
-    result += onTick();
+    result += OnTick();
     // sleep for 1000 ms.
-    sleep_for(std::chrono::milliseconds(1000 / tick_frequency));
+    sleep_for(std::chrono::milliseconds(1000 / tick_frequency_));
   }
   result += "end.";
   return result;
 }
 
-void Clock::stop() { is_running = false; }
+void Clock::Stop() { is_running_ = false; }

@@ -28,16 +28,16 @@ namespace effective {
      * @brief Create house
      * @param name The shared poiter of the house.
      */
-    static std::shared_ptr<House> create(std::string address);
+    static std::shared_ptr<House> Create(std::string address);
     /**
      * @brief Register house. Add this house to the registered_houses_.
      */
-    void registerHouse();
+    void RegisterHouse();
 
   private:
-    virtual std::string doHealthValue() const override;
-    virtual std::string doDraw(int color) const override;
-    virtual std::string onTick() const override;
+    virtual std::string DoHealthValue() const override;
+    virtual std::string DoDraw(Color color) const override;
+    virtual std::string OnTick() const override;
     explicit House(std::string address);
     std::vector<std::shared_ptr<House>> registered_houses_;
     Lock key;  // This key is used by animal, only one animal could stay in the House at one time.

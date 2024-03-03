@@ -18,4 +18,4 @@ Lock::Lock(mutex* mutex_ptr) : mutex_ptr_(mutex_ptr, unlock) {
 //> delete[]与new[]需要成对使用。
 Lock::~Lock() { delete[] users; }
 
-std::mutex* Lock::get() const { return mutex_ptr_.get(); }
+std::mutex* Lock::Get() const { return mutex_ptr_.get(); }

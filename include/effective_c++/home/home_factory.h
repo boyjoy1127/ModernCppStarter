@@ -23,7 +23,7 @@ namespace effective {
      * @brief This function is a deleter for unique_pointer.
      * @param home Home pointer type.
      */
-    constexpr static auto delHome = [](Home* home) {
+    constexpr static auto DelHome = [](Home* home) {
       std::cout << "Record once.";
       delete home;
     };
@@ -36,8 +36,8 @@ namespace effective {
     //> C+=14下函数返回类型的推导可以编译器完成，因此函数返回类型可以声明为auto。
     //> 但是因为设计到模板编程，所以此类的实现应该放到头文件中，这样调用者依赖了头文件，
     //> 调用者的代码在编译期才能通过编译。
-    auto makeHome(std::string type) {
-      std::unique_ptr<Home, decltype(delHome)> result(nullptr, delHome);
+    auto MakeHome(std::string type) {
+      std::unique_ptr<Home, decltype(DelHome)> result(nullptr, DelHome);
       if (type == "Nest") {
         result.reset(new Nest("ParaNest"));
       } else if (type == "Cave") {
@@ -50,12 +50,12 @@ namespace effective {
      * @param type the type of the home.
      * @return The return type is shared_ptr, it points to a home.
      */
-    std::shared_ptr<Home> getHome(std::string type);
+    std::shared_ptr<Home> GetHome(std::string type);
     /**
      * @brief Get the cache size.
      * @return The return the size of the cache.
      */
-    int getCacheSize();
+    int GetCacheSize();
 
   private:
     std::unordered_map<std::string, std::weak_ptr<Home>> cache;

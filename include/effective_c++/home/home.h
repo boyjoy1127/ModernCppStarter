@@ -52,10 +52,8 @@ namespace effective {
     std::string BoardcastAddress() const;
 
   protected:
-    //> 成员变量初始化的顺序为：先声明时初始化，然后初始化列表初始化，最后构造函数初始化。
-    //> 如果调用了一个类的默认构造函数，那么这个变量的值则来自于声明初始化。如果声明时
-    //> 未初始化，则此变量值为该类型的默认值。
-    std::string address_ = "";
+    //> EffectiveC++ 22
+    std::string address() const;
 
   private:
     //> doHealthValue是private级别，派生类访问不到，但是派生类可以重写属于自己的函数。
@@ -77,6 +75,11 @@ namespace effective {
     // Override tick from Clock. The class only need tick() to support the implementation of
     // boardcastAddress fucntion.
     virtual std::string Tick() const;
+    //> 成员变量初始化的顺序为：先声明时初始化，然后初始化列表初始化，最后构造函数初始化。
+    //> 如果调用了一个类的默认构造函数，那么这个变量的值则来自于声明初始化。如果声明时
+    //> 未初始化，则此变量值为该类型的默认值。
+    //> EffectiveC++ 22
+    std::string address_ = "";
   };
 }  // namespace effective
 #endif  // EFFECTIVE_HOME_H_

@@ -15,7 +15,7 @@ string House::DoHealthValue() const { return "check health of full House"; }
 
 string House::DoDraw(Color color) const { return "let paint the house as " + color.color_name(); }
 
-string House::OnTick() const { return "My House address is : " + address_; }
+string House::OnTick() const { return "My House address is : " + address(); }
 
 long House::AddWater(const Water& water) {
   auto water_volume = water.GetWater();

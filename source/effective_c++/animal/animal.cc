@@ -14,3 +14,10 @@ Animal::Animal(string name, int weight) : name_(name), weight_(weight) {
 }
 
 Animal::Animal(string name) : name_(name), weight_(0) { information_ = name_ + to_string(weight_); }
+
+std::string Animal::name() const { return name_; }
+int Animal::weight() const { return weight_; }
+std::string Animal::information() const { return information_; }
+void Animal::set_name(std::string name) { name_ = name; }
+void Animal::set_name(int weight) { weight_ = weight; }
+void Animal::set_information(std::string information) { information_ = information; }

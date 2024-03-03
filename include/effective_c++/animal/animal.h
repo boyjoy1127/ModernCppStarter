@@ -79,6 +79,14 @@ namespace effective {
     virtual bool Sleep() = 0;
 
   protected:
+    std::string name() const;
+    int weight() const;
+    std::string information() const;
+    void set_name(std::string name);
+    void set_name(int weight);
+    void set_information(std::string information);
+
+  private:
     std::string name_;
     int weight_;
     std::string information_;

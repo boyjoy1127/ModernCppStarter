@@ -9,4 +9,4 @@ string Cave::DoHealthValue() const { return "check health of full Cave"; }
 
 string Cave::DoDraw(Color color) const { return "let paint the cave as " + color.color_name(); }
 
-string Cave::OnTick() const { return "My cave address is : " + address_; }
+string Cave::OnTick() const { return "My cave address is : " + address(); }

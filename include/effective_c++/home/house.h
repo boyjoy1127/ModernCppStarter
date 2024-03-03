@@ -34,7 +34,12 @@ namespace effective {
      * @brief Register house. Add this house to the registered_houses_.
      */
     void RegisterHouse();
-
+    //> Effective C++ 21
+    /**
+     * @brief Add water to bucket
+     * @param water Water type
+     * @return water volume
+     */
     long AddWater(const Water& water);
 
   private:

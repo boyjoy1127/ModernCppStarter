@@ -30,3 +30,5 @@ string Home::Tick() const {
   result += Clock::Tick();
   return result;
 }
+
+std::string Home::address() const { return address_; }

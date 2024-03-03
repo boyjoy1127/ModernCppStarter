@@ -1,6 +1,7 @@
 #include "effective_c++/home/house.h"
 
 #include "doctest/doctest.h"
+#include "effective_c++/water.h"
 
 TEST_CASE("House") {
   using namespace effective;
@@ -15,4 +16,5 @@ TEST_CASE("House") {
   CHECK(one_house->GetAddress("decorate ") == "decorate PeopleRoad-No.99");
   CHECK(one_house->GetAddress() == "PeopleRoad-No.99");
   CHECK(one_house->BoardcastAddress() == "This from home begin send address Tick begin My House address is : PeopleRoad-No.99My House address is : PeopleRoad-No.99My House address is : PeopleRoad-No.99end.");
+  CHECK(one_house->AddWater(Water()) == 10);
 }

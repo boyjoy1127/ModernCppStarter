@@ -12,6 +12,7 @@ namespace effective {
     Water& operator=(Water&& rhs);
     Water(const Water& rhs);
     Water& operator=(const Water& rhs);
+    long GetWater() const;
 
   private:
     //> Water类的实现细节放置在该前向声明的实现类中。

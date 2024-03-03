@@ -28,7 +28,7 @@ namespace effective {
     virtual std::string DoDraw(Color color) const override;
     virtual std::string OnTick() const override;
 
-    Lock key;  // This key is used by bird, only one bird could stay in the nest at one time.
+    Lock key_;  // This key is used by bird, only one bird could stay in the nest at one time.
   };
 }  // namespace effective
 #endif  // EFFECTIVE_NEST_H_

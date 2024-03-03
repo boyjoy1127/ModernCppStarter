@@ -19,11 +19,11 @@ using std::string;
 //> 所以应该放置在源文件中；而编译器自动生成的拷贝构造函数和拷贝赋值操作符采用的是浅拷贝，
 //> 如果要实现深拷贝也应该在源文件中定义。
 struct Water::Impl {
-  std::string ingredient;
-  std::string river;
+  std::string river = "IceRiver";
+  int volume = 10;
 };
 
-Water::Water() : pimpl_(std::make_unique<Impl>()) {}
+Water::Water() : pimpl_(std::make_unique<Impl>()){};
 
 Water::~Water() = default;
 
@@ -31,7 +31,7 @@ Water::Water(Water&& rhs) = default;
 
 Water& Water::operator=(Water&& rhs) = default;
 
-Water::Water(const Water& rhs) : pimpl_(std::make_unique<Impl>(*rhs.pimpl_)) {}
+Water::Water(const Water& rhs) : pimpl_(std::make_unique<Impl>(*rhs.pimpl_)){};
 //> Effective C++ 10: 为了实现连锁赋值，赋值操作符必须返回一个refernce to *this。
 //> Effective C++ 11: 考虑到使用operator=进行自我赋值时的正确性，需要仔细考虑operator内部的实现。
 //> 此处如果使用的是裸指针，则需要有更多的考虑，因为涉及到new和delete。
@@ -43,3 +43,5 @@ Water& Water::operator=(const Water& rhs) {
   // this(rhs);//编译器会报错，无法调用拷贝构造函数
   return *this;
 };
+
+long Water::GetWater() const { return pimpl_->volume; }

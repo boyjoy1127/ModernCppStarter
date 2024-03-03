@@ -6,6 +6,7 @@
 
 #  include "effective_c++/home/home.h"
 #  include "effective_c++/lock.h"
+#  include "effective_c++/water.h"
 namespace effective {
   //> Effective Modern C++ 19,关于使用shared_from_this的部分。
   /**
@@ -34,13 +35,16 @@ namespace effective {
      */
     void RegisterHouse();
 
+    long AddWater(const Water& water);
+
   private:
     virtual std::string DoHealthValue() const override;
     virtual std::string DoDraw(Color color) const override;
     virtual std::string OnTick() const override;
     explicit House(std::string address);
     std::vector<std::shared_ptr<House>> registered_houses_;
-    Lock key;  // This key is used by animal, only one animal could stay in the House at one time.
+    long bucket_water_volume_;
+    Lock key_;  // This key is used by animal, only one animal could stay in the House at one time.
   };
 }  // namespace effective
 #endif  // EFFECTIVE_HOUSE_H_

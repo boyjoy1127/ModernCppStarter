@@ -27,7 +27,7 @@ namespace effective {
     virtual std::string DoHealthValue() const override;
     virtual std::string DoDraw(Color color) const override;
     virtual std::string OnTick() const override;
-    Lock key;  // This key is used by animal, only one animal could stay in the Cave at one time.
+    Lock key_;  // This key is used by animal, only one animal could stay in the Cave at one time.
   };
 }  // namespace effective
 #endif  // EFFECTIVE_CAVE_H_

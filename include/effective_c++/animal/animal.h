@@ -26,6 +26,7 @@
 // using std::string;
 
 namespace effective {
+  //> Animal是抽象类，标志就是它拥有一个纯虚函数，一般将析构函数定义为纯虚函数。
   /**
    * @brief The Animal class is a base class.
    * @details The Animal class should only be derived and could not be instantiated.
@@ -41,6 +42,8 @@ namespace effective {
     Animal(Animal&& original) = default;
     Animal& operator=(Animal&& right) = default;
 
+    //> 抽象类需要把析构函数定义为纯虚函数，More Effective C++ 33。
+    //> 这里虽然定义为纯虚函数，还是应该给~Animal()定义实现，因为析构函数的调用是在子类中隐含的。
     /**
      * @brief This is a virtual function that needs to be overloaded by derived classes.
      */
@@ -79,6 +82,8 @@ namespace effective {
     virtual bool Sleep() = 0;
 
   protected:
+    //> 根据Effective C++ 22
+    //> 做出的修改，变量放入private，在protected提供可以访问修改变量的函数给子类。
     std::string name() const;
     int weight() const;
     std::string information() const;

@@ -25,7 +25,7 @@ namespace effective {
     //> 重写的函数需要添加override，这样可以减少错误发生。
     virtual bool Sleep() override;
     //> 子类定义一个与父类同名的重载函数，会遮掩父类函数。
-    std::string GetDescription() { return name_; }
+    std::string GetDescription() { return name(); }
     //> 这里定义了纯虚函数，但是依然给出了它的定义。
     //> 此纯虚函数虽然无法在基类对象中调用(纯虚函数所在类属于抽象类，不能创建对象)，
     //> 但是可以使用命名空间调用。

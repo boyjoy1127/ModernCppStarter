@@ -14,7 +14,7 @@ Animal::Animal(string name, int weight) : name_(name), weight_(weight) {
 }
 
 Animal::Animal(string name) : name_(name), weight_(0) { information_ = name_ + to_string(weight_); }
-
+Animal::~Animal() {}
 std::string Animal::name() const { return name_; }
 int Animal::weight() const { return weight_; }
 std::string Animal::information() const { return information_; }

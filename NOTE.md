@@ -1,3 +1,5 @@
+C++语法查询 https://en.cppreference.com/w/
+C++语法查询 https://c.biancheng.net/cplus/
 ModernCppStarter项目中整理出来一个代码样例项目，将CGL、Modern EffectiveC++、EffectiveC++、More EffectiveC++的良好实践都整理进来。
 *《深度探索C++对象模型》这本书详细讲解的了对象初始化、析构和内存布局，值得阅读*
 书中的条款在项目中以注释的形式来搞。
@@ -8,7 +10,7 @@ Effective C++：4,5,6,7,8,9,10,11,12,13,14,15,16,17,32,33,34,35,36,37,38,39,40.
 More Effective C++：14,9,8,3,24,33.
 Modern Effective C++：11,17,14,12,18,19,20,21,22.
 
-### 面向对象编程，class示例。
+### 面向对象语法
 (按照这个顺序阅读添加：Effective C++(2,3,4,5,6)、More EffectiveC++(5,6,7)、Modern EffectiveC++(3)、CGL、)
 
 #### 类的设计原则
@@ -28,6 +30,14 @@ C++程序员的很多时间多在扩张自己的类型系统(也就是编写各�
 10. 什么是新type的未声明接口？
 11. 你的新type有多么一般化？
 12. 你真的需要一个新type吗？
+
+**More Effective C++ 32**
+*值得多次阅读*
+未来时态的考虑只是简单地增加了一些额外约束：
+- 提供完备的类（见 Item E18），即使某些部分现在还没有被使用。如果有了新的需求，你不用回过头去改它们。
+- 将你的接口设计得便于常见操作并防止常见错误（见 Item E46）。使得类容易正确使用而不易用错。例如，阻止拷贝构造和赋值操作，如果它们对这个类没有意义的话（见 Item E27）。防止部分赋值（见 Item M33）。
+- 如果没有限制你不能通用化你的代码，那么通用化它。例如，如果在写树的遍历算法，考虑将它通用得可以处理任何有向不循环图。未来时态的考虑增加了你的代码的可重用性、可维护性、健壮性，已及在环境发生改变时易于修改。它必须与进行时态的约束条件进行取舍。太多的程序员们只关注于现在的需要，然而这么做牺牲了其软件的长期生存能力。是与众不同的，是离经叛道的，在未来时态下开发程序。
+
 
 **Effective C++ 18**
 让接口容易被正确使用，不易被误用。
@@ -105,14 +115,549 @@ for(inti =0;i<n;++i>){
 
 **Effective C++ 27**
 尽量少做转型动作。
+如果可以，尽量避免转型，特别是在注重效率的代码中避免dynamic_casts。如果有个设计需要转型动作，试着发展无需转型的替代设计。
+如果转型是必要的，试着将它隐藏于某个函数背后。客户随后可以调用该函数，而不需将转型放进他们自己的代码内。
+宁可使用C++STYLE(新式)转型，不要使用旧式转型。前者很容易识别出来，而且也比较有着分门别类的职掌。新式转换：
+const_cast<T>:常量性剔除。
+dynamic_case<T>:基类对象转换为派生类对象。
+reinterpret_case<T>:从原始内存的二进制级别进行转换。比如将指针转换为int。
+static_case<T>:int转double，void*指针转为typed指针，但是它无法将const转换为non-const.
 
+**More Effective C++ 2**
+尽量使用C++风格的类型转换。
+
+**Effective C++ 28**
+避免返回handles指向对象内部成分。Reference，指针和迭代器统统都是所谓的handles。遵守这条可增加封装性，帮助const成员函数的行为像个const，并将发生“虚吊号码牌”的可能性降至最低。
+
+**Effective C++ 29**
+为“异常安全”而付出的额外精力和代码都是值得的。
+异常安全函数即使发生异常也不会泄露资源或允许任何数据结构败坏。这样的函数区分为三种可能的保证：基本型，强烈型，不抛异常型。
+“强烈保证”往往能够以copy and swap实现出来，但“强烈保证”并非对所有函数都可实现或具备现实意义。
+函数提供的“异常安全保证”通常最高只等于其调用之各个函数的“异常安全保证”中的最弱者。
+
+**Effective C++ 31**
+将文件间的编译依存关系降至最低
+支持“编译依存性最小化”的一般构想是：相依于声明式，不要相依于定义式。在实现一个类的时候，通过声明式依赖第三方，可以降低编译依存性，如果第三方实现变了，我们作为调用者是不需要重新编译的。
+Handle classes和Interface classes。解除了接口和实现之间的耦合关系，我们编写了一个接口类给外部用，当我们需要修改内部实现的时候，外部客户无需重新编译他们的代码。
+程序库头文件应该以“完全且仅有声明式”的形式存在。这种做法不论是否设计templates都适用。
+如果使用object references 或 object pointer可以完成任务，就不要使用objects。
+如果能够，尽量以class声明式替换class定义式。
+为声明式和定义式提供不同的头文件。
+*何时使用这个方式减低编译依存性呢？*
+使用Handle classes和Interface classes会对执行效率和内存消耗有一点额外影响，如果是在对计算速率和内存使用要求严苛的场景，则要谨慎考虑使用。它跟inline是相对，正确inline可以让程序跑得更快。
+在有强烈降低编译时间的需求场景下，可以考虑使用这个方法。比如说编写了一个上百个函数的库，那么就应该考虑降低编译时间的需求，库中实现的时候尽量用声明方式依赖第三方，客户调用哪个函数再额外引入函数用到的一些第三方定义头文件。因为客户只使用其中的几个函数，没必要引入全部第三方依赖。
+声明式是指“class Date”，定义式是指“class Date{}”。
+
+**More Effective C++ 1**
+指针和引用的区别，什么时候使用指针，什么时候使用引用？
+当你知道你必须指向一个对象并且不想改变其指向时，或者在重载操作符并未防止不必要的语义误解时，你不该使用指针。而在除此之外的其他情况下，则应该使用指针。
+
+**More Effective C++ 6**
+自增自减操作符前缀形式与后缀形式的区别。
+```cpp
+class UPInt { // "unlimited precision int"
+	public:
+		UPInt& operator++(); // ++ 前缀
+		const UPInt operator++(int); // ++ 后缀
+		UPInt& operator--(); // -- 前缀
+		const UPInt operator--(int); // -- 后缀
+		UPInt& operator+=(int); // += 操作符，UPInts
+		// 与 ints 相运算
+		...
+};
+// 前缀形式：增加然后取回值
+UPInt& UPInt::operator++()
+{
+	*this += 1; // 增加
+	return *this; // 取回值
+}
+// postfix form: fetch and increment
+const UPInt UPInt::operator++(int)
+{
+	UPInt oldValue = *this; // 取回值
+	++(*this); // 增加
+	return oldValue; // 返回被取回的值
+}
+```
+很明显一个后缀 increment 必须返回一个对象（它返回的是增加前的值），但是为什么是 const 对象呢？假设不是 const 对象，下面的代码就是正确的：
+```cpp
+UPInt i;
+i++++; //这是违反了内置类型的使用惯例的
+```
+如果你原来想过让一个函数返回 const 对象没有任何意义，现在你就知道有时还是有用的，后缀 increment 和 decrement 就是例子。 
+从上述的例子中可以看出，后缀操作的代价更大，因为它需要额外的临时变量oldValue。
+后缀和前缀应该完成一样的功能。这个原则是后缀increment 和 decrement 应该根据它们的前缀形式来实现。你仅仅需要维护前缀版本，因为后缀形式自动与前缀形式的行为一致。
+
+**More Effective C++ 7**
+不要重载 “&&” “||” 或 “,”
+重载后，会使得“&&” “||”运算符不具备短路求值的特性。重载后，会使得“,”不具备先计算左侧表达式，后计算右侧表达式。
+
+##### 高效率相关
+
+**More Effective C++ 16**
+优化程序不要盲目优化，现有profile工具找到软件瓶颈，然后优化之，这样才能将优化的工作体现到最后软件的表现上。一定要找到瓶颈再去优化！！否则，在原本不是瓶颈的地方优化，软件行为并不会有多大的改善。
+
+**More Effective C++ 17**
+通过惰性计算提升性能
+四个例子展示了 lazy evaluation 在各个领域都是有用的：能避免不需要的对象拷贝，通过使用 operator[]区分出读操作，避免不需要的数据库读取操作，避免不需要的数字操作。但是它并不总是有用。就好象如果你的父母总是来检查你的房间，那么拖延整理房间将不会减少你的工作量。实际上，如果你的计算都是重要的，lazy evaluation 可能会减慢速度并增加内存的使用，因为除了进行所有的计算以外， 你还必须维护数据结构让 lazyevaluation 尽可能地在第一时间运行。在某些情况下要求软件进行原来可以避免的计算，这时 lazy evaluation 才是有用的。
+
+**More Effective C++ 18**
+通过提前计算提升性能。分期摊还期望的计算。over-eager。
+第一种方法cache
+比如一个集合提供max() min()的函数，这个函数会被频繁调用。那么可以在每次集合变动的时候提前把这些值算好存储起来，每次调用就直接返回值，省得重新计算。如果此处用惰性求值则是等到调用者真正调用的时候才进行计算，则调用方等待的时间肯定要长一些，同时每次都要计算，也消耗了更多资源。
+第二种方法Prefetch
+Prefetching(预提取)是另一种方法。你
+可以把 prefech 想象成购买大批商品而获得的折扣。例如磁盘控制器从磁盘读取数据时，它们会读取一整块或整个扇区的数据，即使程序仅需要一小块数据。这是因为一次读取一大块数据比在不同时间读取两个或三个小块数据要快。而且经验显示如果需要一个地方的数据，则很可能也需要它旁边的数据。这是位置相关现象。正因为这种现象，系统设计者才有理由为指令和数据使用磁盘 cache 和内存 cache，还有使用指令 prefetch。
+还有就是动态数据结构比如hash map扩容，由于扩容开销很大所以它每次扩容的时候，会额外多申请一些空间，来满足未来一段时间的空间需求。
+
+**More Effective C++ 19**
+理解临时对象的来源
+综上所述，临时对象是有开销的，所以你应该尽可能地去除它们，然而更重要的是训练自己寻找可能建立临时对象的地方。在任何时候只要见到常量引用（reference-to-const）参数和by value参数，就存在建立临时对象而绑定在参数上的可能性。在任何时候只要见到函数返回对象，就会有一个临时对象被建立（以后被释放）。学会寻找这些对象构造，你就能显著地增强透过编译器表面动作而看到其背后开销的能力。
+然而概念和现实之间又一个黑暗地带，叫做优化，有时你能以某种方法编写返回对象的函数，以允许你的编译器优化临时对象。这些优化中，最常见和最有效的是返回值优化，这是条款 M20的内容。
+
+**More Effective C++ 20**
+返回值优化，C++编译器可以RVO。这里由于return 语句上是一个构造函数，这个技巧叫constructor argument。可以使得C++编译器进行RVO优化，没有临时变量的构造和析构开销，而是直接在c内存下创建了对象。
+此外将函数声明为inline，可以节省调用operator *的开销。
+```cpp
+inline const Rational operator*(const Rational& lhs, const Rational& rhs) {
+	return Rational(lhs.numerator() * rhs.numerator(),lhs.denominator() * rhs.denominator());
+}
+```
+Ratinal c = a * b;
+
+**More Effective C++ 21**
+通过重载避免隐式类型转换，可以提高效率。
+```cpp
+const UPInt operator+(const UPInt& lhs, const UPInt& rhs); // and UPInt
+
+const UPInt operator+(const UPInt& lhs, int rhs); // and int
+
+UPInt upi1, upi2;
+...
+UPInt upi3 = upi1 + upi2; // 正确,没有由 upi1 或 upi2生成的临时对象
+upi3 = upi1 + 10; // 正确, 没有由 upi1 or 10 生成的临时对象
+upi3 = 10 + upi2; //10 or upi2 生成的临时对象。这个开销较大。因为10需要转换成UPInt，调用const UPInt operator+(const UPInt& lhs, const UPInt& rhs); 
+```
+
+**More Effective C++ 22**
+考虑用运算符的赋值形式(op=)取代其单独形式(op)
+这里谈论的命名对象、未命名对象和编译优化是很有趣的， 但是主要的一点是 operator
+的赋值形式（operator+=）比单独形式(operator+)效率更高。做为一个库程序设计者，应
+该两者都提供，做为一个应用程序的开发者， 在优先考虑性能时你应该考虑考虑用 operator
+赋值形式代替单独形式。
+在这个例子里，从零开始实现 operator+=和-=，而 operator+ 和 operator- 则是通过
+调用前述的函数来提供自己的功能。使用这种设计方法，只用维护 operator 的赋值形式就
+行了。而且如果假设 operator 赋值形式在类的 public 接口里，这就不用让 operator 的单
+独形式成为类的友元
+```cpp
+class Rational {
+public:
+...
+Rational& operator+=(const Rational& rhs);
+Rational& operator-=(const Rational& rhs);
+};
+
+const Rational operator+(const Rational& lhs,const Rational& rhs){
+return Rational(lhs) += rhs;
+}
+// operator- 根据 operator -= 来实现
+const Rational operator-(const Rational& lhs,const Rational& rhs)
+{
+return Rational(lhs) -= rhs;
+}
+```
+在这里值得指出的是三个效率方面的问题。
+第一、总的来说 operator 的赋值形式比其
+单独形式效率更高，因为单独形式要返回一个新对象，从而在临时对象的构造和释放上有一
+些开销（参见条款 M19 和条款 M20，还有 Effective C++条款 23）。operator 的赋值形式把
+结果写到左边的参数里，因此不需要生成临时对象来容纳 operator 的返回值。
+第二、提供 operator 的赋值形式的同时也要提供其标准形式，允许类的客户端在便利与效率上做出折衷选择。
+```cpp
+//前者比较容易编写、debug 和维护，并且在 80％的时间里它的性能是可以被接受的（参见条款 M16）。后者具有更高的效率
+//写法1
+result = a + b + c + d;// 可能用了 3 个临时对象每个 operator+ 调用使用 1 个
+//写法2
+result = a; //不用临时对象
+result += b; //不用临时对象
+result += c; //不用临时对象
+result += d; //不用临时对象
+```
+下一个例子
+第二个模板包含一个命名对象，result。这个命名对象意味着不能在 operator+ 里使用返回值优化（参见
+条款 M20）。第一种实现方法总可以使用返回值优化，所以编译器为其生成优化代码的可能
+就会更大。
+```cpp
+template<class T>
+const T operator+(const T& lhs, const T& rhs)
+{ return T(lhs) += rhs; }
+
+template<class T>
+const T operator+(const T& lhs, const T& rhs)
+{
+T result(lhs); // 拷贝 lhs 到 result 中
+return result += rhs; // rhs 与它相加并返回结果
+}
+```
+
+**More Effective C++ 23**
+优化程序运行效率的另一个可以考虑的点，是更换使用的程序库。每个程序库的实现差异很大，更换程序库可以提升代码效率。
+
+##### 技巧和模式
+这里介绍了使用传统C++语法，实现一些高级设计目标。值得反复品味。
+**More Effective C++ 25**
+将构造函数和非成员函数虚拟化。可是实现一些单纯地重写函数(成员，非成员)难以实现的操作。
+虚拟构造函数是指能够根据输入给它的数据的不同而建立不同类型的对象。虚拟构造函数在很多场合下都有用处，从磁盘（或者通过网络连接，或者从磁带机上）读取对象信息只是其中的一个应用。 
+readComponent就是虚拟构造函数。
+```cpp
+class NewsLetter {
+public:
+...
+private:
+// 为建立下一个 NLComponent 对象从 str 读取数据,
+// 建立 component 并返回一个指针。
+static NLComponent * readComponent(istream& str);
+...
+};
+NewsLetter::NewsLetter(istream& str)
+{
+while (str) {
+// 把 readComponent 返回的指针添加到 components 链表的最后，
+// "push_back" 一个链表的成员函数，用来在链表最后进行插入操作。
+components.push_back(readComponent(str));
+}
+}
+```
+虚拟拷贝构造函数的名字一般都是 copySelf，cloneSelf 或者是象下面这样就叫做 clone。类的虚拟拷贝构造函数只是调用它们真正的拷贝构造函数。在 NLComponent 中的虚拟拷贝构造函数能让实现 NewLetter 的(正常的)拷贝构造函数变得很容易：
+```cpp
+class NewsLetter {
+	public:
+		NewsLetter(const NewsLetter& rhs);
+		...
+	private:
+		list<NLComponent*> components;
+};
+NewsLetter::NewsLetter(const NewsLetter& rhs)
+{
+	// 遍历整个 rhs 链表，使用每个元素的虚拟拷贝构造函数
+	// 把元素拷贝进这个对象的 component 链表。
+	// 有关下面代码如何运行的详细情况，请参见条款 M35.
+	for (list<NLComponent*>::const_iterator it = rhs.components.begin(); it != rhs.components.end(); ++it) {
+		// "it" 指向 rhs.components 的当前元素，调用元素的 clone 函数，
+		// 得到该元素的一个拷贝，并把该拷贝放到
+		// 这个对象的 component 链表的尾端。
+		components.push_back((*it)->clone());
+	}
+}
+```
+具有虚拟行为的非成员函数很简单。你编写一个虚拟函数来完成工作，然后再写一个非虚拟函数，它什么也不做只是调用这个虚拟函数。为了避免这个句法花招引起函数调用开销，你当然可以内联这个非虚拟函数。
+```cpp
+class NLComponent {
+public:
+virtual ostream& print(ostream& s) const = 0;
+...
+};
+class TextBlock: public NLComponent {
+public:
+virtual ostream& print(ostream& s) const;
+...
+};
+class Graphic: public NLComponent {
+public:
+virtual ostream& print(ostream& s) const;
+...
+};
+inline ostream& operator<<(ostream& s, const NLComponent& c)
+{
+return c.print(s);
+}
+```
+
+**More Effective C++ 26**
+这里介绍如何限制某个类所能产生的对象数量。
+这里讲了用c++实现单例模式，主要依靠局部static变量。使用计数器可以实现更灵活的单个实例的限制，详见“允许对象来去自由”。
+限制数量大于1的时候，比如限制5。那么可以设置一个私有计数器，构造函数中+1，析构函数中-1.每次构造函数被调用时都检查一下是否达到上限，达到则抛出异常或返回空指针。同时为了防止计数混乱，可以将构造函数声明为private。这样类就无法被继承，也无法作为其他类的成员变量。
+介绍了如何禁止一个类被继承，参考FSA示例。
+我们很容易地能够编写一个具有实例计数功能的基类， 然后让像 Printer 这样的类从该基类继承，而且我们能做得更好。
+
+```cpp
+template<class BeingCounted>
+class Counted {
+	public:
+		class TooManyObjects{}; // 用来抛出异常
+		static int objectCount() { return numObjects; }
+	protected:
+		Counted();
+		Counted(const Counted& rhs);
+		~Counted() { --numObjects; }
+	private:
+		static int numObjects;
+		static const size_t maxObjects;
+		void init(); // 避免构造函数的
+}; // 代码重复
+template<class BeingCounted> Counted<BeingCounted>::Counted() { init(); }
+template<class BeingCounted> Counted<BeingCounted>::Counted(const Counted<BeingCounted>&) { init(); }
+template<class BeingCounted> void Counted<BeingCounted>::init(){
+if (numObjects >= maxObjects) throw TooManyObjects();
+++numObjects;
+}
+```
+从这个模板生成的类仅仅能被做为基类使用，因此构造函数和析构函数被声明为protected。注意 private 成员函数 init 用来避免两个 Counted 构造函数的语句重复。
+现在我们能修改 Printer 类，这样使用 Counted 模板.
+Printer 使用了 Counter 模板来跟踪存在多少 Printer 对象，坦率地说，除了 Printer的编写者，没有人关心这个事实。它的实现细节最好是 private，这就是为什么这里使用private继承的原因 
+```cpp
+class Printer: private Counted<Printer> {
+public:
+	// 伪构造函数
+	static Printer * makePrinter();
+	static Printer * makePrinter(const Printer& rhs);
+	~Printer();
+	void submitJob(const PrintJob& job);
+	void reset();
+	void performSelfTest();
+	...
+	using Counted<Printer>::objectCount; // 这样使得外部调用者可以访问到objectCount()函数
+	using Counted<Printer>::TooManyObjects; // 由于这个异常抛出后，对于客户是可见的，所以需要声明出来，对客户可见。
+private:
+	Printer();
+	Printer(const Printer& rhs);
+};
+```
+当 Printer 继承 Counted<Printer>时，它可以忘记有关对象计数的事情。编写 Printer 类时根本不用考虑对象计数，就好像有其他人会为它计数一样。Printer 的构造函数可以是这样的：
+```cpp
+Printer::Printer()
+{
+进行正常的构造函数运行
+}
+```
+
+**More Effective C++ 27**
+要求或禁止在堆中产生对象
+*这个内容后面有时间慢慢看，或者需要的时候再来看*
+
+**More Effective C++ 28**
+smart指针。这节不用看了。Effective Modern C++已经有了对smart指针更全面的叙述。
+
+**More Effective C++ 29**
+*这个内容后面有时间慢慢看，或者需要的时候再来看*
+引用计数。
+使用引用计数有两个动机：第一个是简化跟踪堆中的对象的过程，这个shared_ptr可以做到；第二个是第二个动机是由于一个简单的常识。如果很多对象有相同的值，将这个值存储多次是很无聊的。更好的办法是让所有的对象共享这个值的实现，这个就是std::string的实现方式。
+评述
+实现引用计数不是没有代价的。每个被引用的值带一个引用计数，其大部分操作都需要以某种形式检查或操作引用计数。对象的值需要更多的内存，而我们在处理它们时需要执行更多的代码。此外，就内部的源代码而言，带引用计数的类的复杂度比不带的版本高。没有引用计数的 String 类只依赖于自己，而我们最终的 String 类如果没有三个辅助类（StringValue、RCObject 和 RCPtr）就无法使用。确实，我们这个更复杂的设计确保在值可共享时的更高的效率；免除了跟踪对象所有权的需要，提高了引用计数的想法和实现的可重用性。但，这四个类必须写出来、被测试、文档化、和被维护，比单个类要多做更多的工作。即使是管理人员也能看出这点。
+引用计数是基于对象通常共享相同的值的假设的优化技巧（参见 Item M18）。如果假设不成立的话，引用计数将比通常的方法使用更多的内存和执行更多的代码。另一方面，如果你的对象确实有具体相同值的趋势，那么引用计数将同时节省时间和空间。共享的值所占内存越大，同时共享的对象数目越多，节省的内存也就越大。创建和销毁这个值的代价越大，你节省的时间也越多。总之，引用计数在下列情况下对提高效率很有用：
+少量的值被大量的对象共享。这样的共享通常通过调用赋值操作和拷贝构造而发生。对象/值的比例越高，越是适宜使用引用计数。对象的值的创建和销毁代价很高昂，或它们占用大量的内存。即使这样，如果不是多个对象共享相同的值，引用计数仍然帮不了你任何东西。只有一个方法来确认这些条件是否满足，而这个方法不是猜测或依赖直觉（见 ItemM16）。这个方法是使用 profiler 或其它工具来分析。使用这种方法，你可以发现是否创建和销毁值的行为是性能瓶颈，并能得出对象/值的比例。只有当你手里有了这些数据，你才能得出是否从引用计数上得到的好处超过其缺点。即使上面的条件满足了，使用引用计数仍然可能是不合适的。有些数据结构（如有向图）将导致自我引用或环状结构。这样的数据结构可能导致孤立的自引用对象，它没有被别人使用，而其引用计数又绝不会降到零。因为这个无用的结构中的每个对象被同结构中的至少一个对象所引用。商用化的垃圾收集体系使用特别的技术来查找这样的结构并消除它们但我们现在使用的这个简单的引用计数技术不是那么容易扩充出这个功能的。
+即使效率不是主要问题，引用计数仍然很吸引人。如果你不放心谁应该去执行删除动作，那么引用计数正是这种让你放下担子的技巧。很多程序员只因为这个原因就使用引用计数。
+让我们用最后一个问题结束讨论。当 RCObject::removeReference 减少对象的引用计数时，它检查新值是否为 0。如果是，removeReference 通过调用 delete this 销毁对象。这个操作只在对象是通过调用 new 生成时才安全，所以我们需要一些方法以确保 RCObject只能用这种方法产生。
+此处，我们用习惯方法来解决。RCObject 被设计为只作被引用计数的值对象的基类使用，而这些值对象应该只通过灵巧指针 RCPtr 引用。此外，值对象应该只能由值会共享的对象来实例化；它们不能被按通常的方法使用。在我们的例子中，值对象的类是 StringValue，我们通过将它申明为 String 的私有而限制其使用。 只有 String 可以创建 StringValue 对象，所以 String 类的作者应该确保这些值对象都是通过 new 操作产成的。
+于是，我们限制 RCObject 只能在堆上创建的方法就是指定一组满足这个要求的类，并确保只有这些类能创建 RCObject 对象。用户不可能无意地（或有意地）用一种不恰当的方法创建 RCObject 对象。我们限制了创建被引用计数对象的权力，当我们交出这个权力时，必须明确其附带条件是满足创建对象的限制条件
+
+**More Effective C++ 30**
+代理类。
+这里介绍了如何通过代理类实现二维数组。每个 Array1D 对象扮演的是一个一维数组，而这个一维数组没有在使用 Array2D 的程序中出现。扮演其它对象的对象通常被称为代理类。在这个例子里，Array1D 是一个代理类。它的实例扮演的是一个在概念上不存在的一维数组。 （术语代理对象（proxy object）和代理类（proxy classs）还不是很通用；这样的对象有时被叫做 surrogate。 ）
+Proxy 类可以完成一些其它方法很难甚至不可能实现的行为。多维数组是一个例子，左/右值的区分是第二个，限制隐式类型转换（见 Item M5）是第三个。
+同时，proxy 类也有缺点。作为函数返回值，proxy 对象是临时对象（见 Item 19），它们必须被构造和析构。这不是免费的，虽然此付出能从具备了区分读写的能力上得到更多的
+补偿。Proxy 对象的存在增加了软件的复杂度，因为额外增加的类使得事情更难设计、实现、理解和维护。
+最后，从一个处理实际对象的类改换到处理 proxy 对象的类经常改变了类的语义，因为 proxy 对象通常表现出的行为与实际对象有些微妙的区别。有时，这使得在设计系统时无法选择使用 proxy 对象，但很多情况下很少有操作需要将 proxy 对象暴露给用户。例如，很少有用户取上面的二维数组例子中的 Array1D 对象的地址，也不怎么有可能将下标索引的对象（见 Item M5）作参数传给一个期望其它类型的函数。在很多情况下，proxy 对象可以完美替代实际对象。当它们可以工作时，通常也是没有其它方法可采用的情况。
+
+```cpp
+template<class T>
+class Array2D {
+	public:
+	class Array1D {
+	public:
+	T& operator[](int index);
+	const T& operator[](int index) const;
+	...
+	};
+	Array1D operator[](int index);
+	const Array1D operator[](int index) const;
+	...
+};
+```
+如何通过代理类区分[]是读操作还是写操作,使用CharProxy代理char。
+```cpp
+class String { // reference-counted strings;
+	public: // see Item 29 for details
+		class CharProxy { // proxies for string chars
+			public:
+				CharProxy(String& str, int index); // creation
+				CharProxy& operator=(const CharProxy& rhs); // lvalue
+				CharProxy& operator=(char c); // uses
+				operator char() const; // rvalue use, 因为这个函数返回了一个字符的值，并且又因为 C++限定这样通过值返回的对象只能作右值使用，所以这个转换函数只能出现在右值的位置。
+				char * operator&();
+				const char * operator&() const;
+				private:
+				String& theString; // string this proxy pertains to char within that string this proxy stands for
+				int charIndex; 
+		};
+		// continuation of String class
+		const CharProxy operator[](int index) const; // for const Strings
+		CharProxy operator[](int index); // for non-const Strings
+		...
+		friend class CharProxy;
+	private:
+		RCPtr<StringValue> value;
+};
+const String::CharProxy String::operator[](int index) const
+{
+	return CharProxy(const_cast<String&>(*this), index);
+}
+String::CharProxy String::operator[](int index)
+{
+	return CharProxy(*this, index);
+}
+String::CharProxy::CharProxy(String& str, int index) : theString(str), charIndex(index) {}
+String::CharProxy::operator char() const { return theString.value->data[charIndex]; }
+String::CharProxy& String::CharProxy::operator=(const CharProxy& rhs)
+{
+	// if the string is sharing a value with other String objects,
+	// break off a separate copy of the value for this string only
+	if (theString.value->isShared()) {
+		theString.value = new StringValue(theString.value->data);
+	}
+	// now make the assignment: assign the value of the char
+	// represented by rhs to the char represented by *this
+	theString.value->data[charIndex] =
+	rhs.theString.value->data[rhs.charIndex];
+	return *this;
+}
+String::CharProxy& String::CharProxy::operator=(char c)
+{
+	if (theString.value->isShared()) {
+		theString.value = new StringValue(theString.value->data);
+	}
+	theString.value->data[charIndex] = c;
+	return *this;
+}
+const char * String::CharProxy::operator&() const
+{
+	return &(theString.value->data[charIndex]);
+}
+char * String::CharProxy::operator&()
+{
+	// make sure the character to which this function returns
+	// a pointer isn't shared by any other String objects
+	if (theString.value->isShared()) {
+	theString.value = new StringValue(theString.value->data);
+	}
+	// we don't know how long the pointer this function
+	// returns will be kept by clients, so the StringValue
+	// object can never be shared
+	theString.value->markUnshareable();
+	return &(theString.value->data[charIndex]);
+}
+```
+
+**More Effective C++ 31**
+让函数根据一个以上的对象来决定怎么虚拟。
+碰撞函数processCollision()，需要实现为虚函数，根据object1的动态类型和object2的动态类型决定，具体调用什么函数。
+```cpp
+class GameObject { ... };
+class SpaceShip: public GameObject { ... };
+class SpaceStation: public GameObject { ... };
+class Asteroid: public GameObject { ... };
+void checkForCollision(GameObject& object1,GameObject& object2){
+	if (theyJustCollided(object1, object2)) {
+	processCollision(object1, object2);
+	}
+	else {
+	...
+	}
+}
+一种方法是用虚函数加 RTTI(RTTI是”Runtime Type Information”的缩写，意思是运行时类型信息，它提供了运行时确定对象类型的方法。)。
+一种方法只使用虚函数。
+一种方法是模拟虚函数表。
+使用非成员的碰撞处理函数。
+```
 
 
 ##### 哪些情况使用inline
+**Effective C++ 30**
+将大多数inlining限制在小型、被频繁调用的函数身上。这可使日后的调试过程和二进制升级更容易，也可使潜在的代码膨胀问题最小化，是使程序的速度提升机会最大化。
+不要只因为function templates出现在头文件，就将他们声明为inline。
+
 
 ##### 哪些情况使用const
+**Effective C++ 3**
+应该尽可能地使用const，将某些东西声明为const可帮助编译器侦测出错误用法。const 可被施加于任何作用域的对象、函数参数、函数返回类型、成员函数本体。
+当const和non-const成员函数有着实质等价的实现时，令non-const版本调用const版本可避免代码重复。
+编译器强制实施bitwise constness,但你编写程序时应该使用“概念上的常量性”conceptual constness，也就是是说函数是否能被标记为const，不只看是否改变了成员变量，还要看给外部调用者提供了改变成员变量的机会，如果一个函数返回了内部成员变量的指针，那么它不应该是const。我们写const函数应该按照conceptual constness来写，就是逻辑上对调用者保持是不变的。这个时候const函数内部是可以修改部分变量的，但是这些变量需要使用mutable来修饰。如下：
+```cpp
+class CTextBlock{
+	public:
+	...
+	std::size_t length() const;
+	private:
+	char* pText;
+	mutable std::size_t textLength;
+	mutable bool lengthIsValid;
+};
+std::size_t CTextBlock::length() const
+{
+	if(!lengthIsValid){
+		textLength = std::strlen(pText);
+		lengthIsValid = true;
+	}
+	return textLength;
+}
+```
 
 ##### 哪些情况下使用friend
+STL中迭代器就是容器的友元。
+单元测试函数可以作为对应的类的友元。
+重载操作符,如下：
+```cpp
+class person{
+public:
+//作为类的成员函数，重载运算符参数只需要右操作值即可
+   friend bool operator<(const Person& arg1, const Person& arg2);
+private:
+   int a;
+};
+
+//实现时不需要类名限定
+bool operator<(const Person& arg1, const Person& arg2){
+    if( arg1.a < arg2.a)
+       return true;
+    else
+        return false;
+}
+person a1,a2;
+bool bRet = a1 < a2 ; 
+```
+##### 关于定制new和delete
+**Effective C++ 49**
+new-handler的行为
+set_new_handler允许客户指定一个函数，在内存分配无法获得满足时被调用。
+Nothrow new是一个颇为局限的工具，因为它只适用于内存分配；后继的构造函数调用还是可能抛出异常。
+一个设计良好的new-handler必须做以下事情：
+- 让更多内存可被使用
+- 安装另一个new-handler
+- 卸除new-handler
+- 抛出bad_alloc 的异常
+- 不返回
+
+**Effective C++ 50**
+了解new和delete的合理替换时机
+三个常见的理由：
+- 用来检测运用上的错误。overruns写入点在分配区尾端之后和underruns写入点在分配区起点之前。比如new分配额外空间存放签名，delete的时候检查签名是否存在，就可以验证该区域是否被错误覆盖了其他信息。
+- 为了强化效能。定制new和delete可以满足特定场景下提升内存管理效率，因为默认的new和delete为来满足各种使用场景，它的效率不是特别高。
+- 为了收集使用上的统计数据。定制new和delete可以收集程序使用内存行为的统计信息。
+还有其他理由：
+- 为了增加分配和归还的速度
+- 为了降低缺省内存管理器带来的空间额外开销。
+- 为了弥补缺省分配器中的非最佳齐位。
+- 为了将相关对象成簇几种。
+- 为了获得非传统的行为。
+
+**Effective C++ 51**
+编写时需固守常规
+operator new 应该内含一个无穷循环，并在其中尝试分配内存，如果它无法满足内存需求，就该调用new-handler。它也应该有能力处理0 bytes申请。Class专属版本则还应该处理“比正确大小更大的(错误)申请”。
+operator delete应该在收到null指针时不做任何事。Class专属版本则还应该处理“比正确大小更大的（错误）申请”。
+
+**Effective C++ 52**
+1. 当你写一个placement operator new, 请确定也写出了对应的placement operator delete。如果没有这样做，你的程序可能会发生隐微而时断时续的内存泄露
+2. 当你声明placement new和placement delete， 请确定不要无意识地遮掩了他们的正常版本。
+
 
 
 #### 类的成员函数
@@ -413,6 +958,22 @@ EXIT_FAILURE 是一个预定义的宏，它通常被定义为一个非零整数�
 注意：
 exit()是会导致内存泄露的，但是这种内存泄露通常没有不良后果，不需要努力去规避。exit()之后不久进程就终结了，操作系统会把该进程使用的所有内存全部回收。如果一个对象使用了内存之外的其他系统资源，比如建了一个临时文件，又没有利用操作系统的特有功能把它搞成关闭即删除的，而是在析构函数里删除，那么exit以后就会把文件残留在文件系统里。总之，c++里调用exit不是个好习惯。
 
+**More Effective C++ 12**
+理解“抛出一个异常”与“传递一个参数”或“调用一个虚函数”间的差异
+1. 异常对象在传递是总是被进行拷贝；当通过传值方式捕获时，异常对象被拷贝了两次。对象做为参数传递给函数时不一定需要被拷贝。
+2. 对象做为异常被抛出与作为参数传递给函数相比，前者类型转换比后者要少。
+3. cactch子句进行异常类型匹配的顺序是他们在源代码中出现的顺序，第一个类型匹配成功的cactch将被用来执行。当一个对象调用一个虚拟函数时，被选择的函数位于与对象类型匹配最佳的类里，即使该类不是在源代码的最前头。
+
+**More Effective C++ 13**
+通过引用捕获异常。这是最佳选择。
+
+**More Effective C++ 15**
+异常处理是有开销的。尽量避免抛出异常和捕获异常。避免使用异常规格，因为异常规格也是有开销的。
+
+**Google为什么不使用异常**
+从表面上看来，使用异常利大于弊, 尤其是在新项目中. 但是对于现有代码, 引入异常会牵连到所有相关代码. 如果新项目允许异常向外扩散, 在跟以前未使用异常的代码整合时也将是个麻烦. 因为 Google 现有的大多数 C++ 代码都没有异常处理, 引入带有异常处理的新代码相当困难.
+这里是来自网友的讨论：https://www.zhihu.com/question/31614576/answer/95492773
+
 *总结*
 c++代码中只有两种类型的函数：不抛异常和可能抛出异常两种。使用noexcept标记。
 为明确保证今后都不抛出异常的函数添加noexcept，其他情况不需要添加noexcept，更不需要使用throw()。
@@ -465,20 +1026,52 @@ https://en.cppreference.com/w/cpp/language/constructor
 当使用列表中的成员初始化另一个成员，或者需要调用成员函数的时候，等其他复杂情况。
 请在函数体内{}进行初始化操作。
 
-3. **MoreEffective C++ 5**
-- 谨慎定义类型转换函数。一个参数进行调用的构造函数应当加上 explicit。比如单参数构造函数和多个参数且有默认值的构造函数。
-- 接受一个 std::initializer_list 作为参数的构造函数也应当省略 explicit, 
-  以便支持拷贝初始化 (例如 MyType m = {1, 2};).（来自Google C++开源代码风格指南的3.2部分）
+3. **More Effective C++ 5**
+- 谨慎定义类型转换函数。让编译器进行隐式类型转换所造成的弊端要大于它所带来的好处。一个参数进行调用的构造函数应当加上 explicit。比如单参数构造函数和多个参数且有默认值的构造函数。
+- 在类型定义中, 类型转换运算符和单参数构造函数都应当用 explicit 进行标记. 一个例外是, 拷贝和移动构造函数不应当被标记为 explicit, 因为它们并不执行类型转换. 对于设计目的就是用于对其他类型进行透明包装的类来说, 隐式类型转换有时是必要且合适的. 这时应当联系项目组长并说明特殊情况.
+不能以一个参数进行调用的构造函数不应当加上 explicit. 接受一个 std::initializer_list 作为参数的构造函数也应当省略 explicit, 以便支持拷贝初始化 (例如 MyType m = {1, 2};).（来自Google C++开源代码风格指南的3.2部分）
 
 4. **Effective C++ 9**
 不要在构造和析构函数中调用virtual函数,因为此过程调用的虚函数可能来自基类而不是派生类。
 
-5. **派生类的默认构造函数的机制**
+5. **More Effective C++ 10**
+在构造函数中防止资源泄露
+如果你用对应的智能指针对象替代指针成员变量，就可以防止构造函数在存在异常时发生资源泄露，你也不用手工在析构函数中释放资源，并且你还能像以前使用非CONST指针一样使用CONST指针，给其赋值。对于裸指针类型的成员，
+如果像下面这样初始化则会出错，因为当new AudioClip抛出异常时，theImage会造成资源泄露。此时析构函数不会被调用，因为C++仅仅能删除被完全构造的对象，只有一个对象的构造函数完全运行完毕，这个对象才被完全地构造。
+如果用try catch处理the Image的资源泄露当然可以就是不太优雅。使用智能指针则可以保证theImage的资源会被自动回收掉。
+如果像下面这样初始化则会出错：
+```cpp
+class BookEntry { // 通讯录中的条目
+public:
+BookEntry(const string& name,
+const string& address = "",
+const string& imageFileName = "",
+const string& audioClipFileName = ""): theName(name), theAddress(address),theImage(0), theAudioClip(0) {
+	if (imageFileName != "") {
+		theImage = new Image(imageFileName);
+	}
+	if (audioClipFileName != "") {
+		theAudioClip = new AudioClip(audioClipFileName);
+	}
+}
+~BookEntry();
+...
+private:
+string theName; // 人的姓名
+string theAddress; // 他们的地址
+list<PhoneNumber> thePhones; // 他的电话号码
+Image *theImage; // 他们的图像
+AudioClip *theAudioClip; // 他们的一段声音片段
+};
+```
+
+
+6. **派生类的默认构造函数的机制**
 1、如果基类定义了不带参数的默认构造函数，则编译器为派生类自动生成的默认构造函数会调用基类的默认构造函数。
 2、如果基类定义了拷贝构造函数，则编译器为派生类自动生成的拷贝构造函数同样会调用基类的拷贝构造函数。
 3、如果基类定义了带参数的构造函数，派生类没有定义任何带参数的构造函数，则不能直接调用基类的带参构造函数，程序编译不通过。
 
-6. **派生类的构造函数执行顺序**
+7. **派生类的构造函数执行顺序**
 按照继承顺序执行基类的构造函数，然后按定义顺序执行对象成员的构造函数。
 1、调用基类构造函数。
 顺序按照它们被继承时声明的顺序（从左向右）：Base2, Base1, Base3。
@@ -486,6 +1079,22 @@ https://en.cppreference.com/w/cpp/language/constructor
 顺序按照它们在类中定义的顺序：Base1 member1; Base2 member2; Base3 member3;。
 对象成员初始化时自动调用其所属类的构造函数。由初始化列表提供参数。
 3、执行派生类的构造函数体中的内容。
+
+8. **More Effective C++ 4**
+避免无用的缺省构造函数
+缺省构造函数是常常被需要的，所以是可以提供的。也就是要保证缺省构造函数是合理的。
+但是要避免提供无意义的缺省构造函数。提供无意义的缺省构造函数也会影响类的工作效率。如果成员函数必须测试所有的部分是否都被正确地初始化，那么这些函数的调用者就得为此付出更多的时间。而且还得付出更多的代码，因为这使得可执行文件或库变得更大。它们也得在测试失败的地方放置代码来处理错误。如果一个类的构造函数能够确保所有的部分被正确初始化，所有这些弊病都能够避免。缺省构造函数一般不会提供这种保证，所以在它们可能使类变得没有意义时，尽量去避免使用它们。使用这种（没有缺省构造函数的）类的确有一些限制，但是当你使用它时，它也给你提供了一种保证：你能相信这个类被正确地建立和高效地实现。
+例如：
+```cpp
+class EquipmentPiece {
+public:
+	EquipmentPiece( int IDNumber = UNSPECIFIED);
+	...
+private:
+	static const int UNSPECIFIED; // 其值代表 ID 值不确定。
+};
+```
+这样的修改使得其他成员函数变得复杂，因为不再能确保 EquipmentPiece 对象进行了有意义的初始化。假设它建立一个因没有 ID 而没有意义的 EquipmentPiece 对象，那么大多数成员函数必须检测 ID 是否存在。如果不存在 ID，它们将必须指出怎么犯的错误。不过通常不明确应该怎么去做，很多代码的实现什么也没有提供：只是抛出一个异常或调用一个函数终止程序。当这种情形发生时，很难说提供缺省构造函数而放弃了一种保证机制的做法是否能提高软件的总体质量。
 
 *总结*
 1. 初始化成员列表的方式效率较高，使用初始化成员列表的时候，需要将成员变量都列出来，明确每个变量的构造方式。
@@ -516,6 +1125,9 @@ Classes的设计目的如果不是作为base classes使用，或不是为了具�
 用一个对象存储需要被自动释放的资源，然后依靠对象的析构函数来释放资源，这种思想不只是可以运用在指针上，还能用在其它资源的分配和释放上。
 4. **MORE Effective C++ 8**
 讲解了这些操作符的区别：operator new; new operator;placement new;operator delete;delete operator;operator new[];operator delete[]。
+operator new 分配内存。new operator 分配内存+构造对象。
+operator delete 释放内存。delete operator 析构对象+释放内存。
+operator new[];operator delete[]。分别是分配内存+调用元素的构造函数构造数组和调用元素的析构函数析构数组元素+释放内存
 
 5. **string和内置类型需要在析构函数中操作释放内存吗？**
 析构函数和构造函数类似，对于内置类型不做处理，对于裸指针类型会去调用delete，因此如果我们不写析构函数，但是对象存在动态开辟空间的行为，并且我们想释放这块开辟的空间，那么就会造成内存泄漏。
@@ -548,6 +1160,11 @@ C++中的 new 和 delete 分别用来分配和释放内存，它们与C语言中
 
 11. **Effective C++ 5**
 class析构函数（无论是编译器生成的，还是用户自定义的），会自动调用其非静态成员变量的析构函数。
+
+12. **More Effective C++ 11**
+禁止异常信息exceptions传递到析构函数外
+在有两种情况下会调用析构函数。第一种是在正常情况下删除一个对象，例如对象超出了作用域或被显示地delete。第二种是异常传递的堆栈辗转开解过程中，由异常处理系统删除一个对象。在上述两种情况下，调用析构函数时异常可能处于激活状态也可能没有处于激活状态。遗憾的是没有办法在析构函数内部区分出这两种情况。因此在写析构函数时你必须保守地假设有异常被激活。因为如果在一个异常被激活的同时，析构函数也抛出异常，并导致程序控制权转移到析构函数外，C++将调用terminate函数。这个函数的作用是终止你程序的运行，而且是立即终止，甚至连局部对象都没有被释放。
+防止异常传递到析构函数外的主要办法就是使用 try catch语句，防止 try catch语句嵌套太深的办法是在最里面的catch块中，不写任何语句，保持空块。
 
 *总结*
 1. 多态用途的基类，需要声明virtual析构函数。
@@ -978,13 +1595,75 @@ int main()
     for (int i{5}; i != 8; ++i) { std::cout << i << "! = " << factorial(i) << ";  "; }
 }
 ```
+
+*在网上找找Effecti C++和More Effective C++的哪些条款已经不适用现代C++语法了。更新一下笔记*
 *在面向对象部分的信息整理完成后，再跟CGL对应章节核对一遍*
 
-### 模板编程，模板示例
+### 模板元编程(编译期计算)语法
+#### 资料
+C++模板元编程详细教程(已经保存到WIZNOTE中)
+https://blog.csdn.net/fl2011sx/article/details/128077440
+
+模板元编程简要介绍(已经保存到WIZNOTE中)
+https://netcan.github.io/presentation/metaprogramming/#/
+
+C++ 11 14 17的模板元编程语法(已经保存到WIZNOTE中)
+https://zhuanlan.zhihu.com/p/672410503
+#### 计划
+学习C++模板元编程详细教程：https://blog.csdn.net/fl2011sx/article/details/128077440
+然后整理出一个代码示例在ModerCppStarter中，然后再阅读Effective Modern C++，和EffectiveC++部分，将这些内容整理在此NOTE.md笔记中。
+
+##### 一
+类模板
+class,union和struct都可以模板化。
+```cpp
+template <typename T, size_t size>
+class Array {
+ public:
+  Array();
+  T &at();
+  size_t size() const;
+ private:
+  T data_[size];
+};
+
+void Demo() {
+  Array<int, 5> arr; // 实例化，并创建对象
+  arr.at(1) = 6;
+}
+```
 
 
 
-### STL编程，STL示例
+*HERE*
+
+
+
+
+
+
+
+*在网上找找Effecti C++和More Effective C++的哪些条款已经不适用现代C++语法了。更新一下笔记*
+
+
+### STL编程(模板编程)语法
+*进阶需要阅读《Effective STL》，已经下载到文档中了。*
+
+#### 六大组件
+STL 提供了六大组件，彼此组合套用协同工作。这六大组件分别是：
+容器（Containers）：各种数据结构，如 vector、list、deque、set、map 等。从实现的角度来看，容器是一种 class template。
+算法（Algorithms）：各种常用算法，提供了执行各种操作的方式，包括对容器内容执行初始化、排序、搜索和转换等操作，比如 sort、search、copy、erase。从实现的角度来看，STL 算法是一种 function template。
+迭代器（Iterators）：迭代器用于遍历对象集合的元素，扮演容器与算法之间的胶合剂，是所谓的“泛型指针”，共有 5 种类型，以及其他衍生变化。从实现角度来看，迭代器是一种将 operator*、operator->、operator++、operator-- 等指针操作予以重载的 class template。所有的 STL 容器附带有自己专属的迭代器，因为只有容器设计者才知道如何遍历自己的元素。
+仿函数（Functors）：也称为函数对象（Function object），行为类似函数，可作为算法的某种策略。从实现角度来看，仿函数是一种重载了 operator() 的 class 或者 class template。
+适配器（Adaptors）：一种用来修饰容器或者仿函数或迭代器接口的东西。例如 STL 提供的 queue 和 stack，就是一种空间配接器，因为它们的底部完全借助于 deque。
+分配器（Allocators）：也称为空间配置器，负责空间的配置与管理。从实现的角度来看，配置器是一个实现了动态配置空间、空间管理、空间释放的 class template。
+详细介绍参考https://zhuanlan.zhihu.com/p/664872204
+
+#### 代码示例
+C++ STL容器用法示例大全
+https://blog.csdn.net/lady_killer9/article/details/81175682
+
+
 
 
 

@@ -8,10 +8,10 @@ ModernCppStarter项目中整理出来一个代码样例项目，将CGL、Modern 
 ### 各个书籍已经阅读的部分
 Effective C++：4,5,6,7,8,9,10,11,12,13,14,15,16,17,32,33,34,35,36,37,38,39,40.
 More Effective C++：14,9,8,3,24,33.
-Modern Effective C++：11,17,14,12,18,19,20,21,22.
+Effective Modern C++：11,17,14,12,18,19,20,21,22.
 
 ### 面向对象语法
-(按照这个顺序阅读添加：Effective C++(2,3,4,5,6)、More EffectiveC++(5,6,7)、Modern EffectiveC++(3)、CGL、)
+(按照这个顺序阅读添加：Effective C++(2,3,4,5,6)、More EffectiveC++(5,6,7)、Effective Modern C++(3)、CGL、)
 
 #### 类的设计原则
 **Effective C++ 19**
@@ -191,6 +191,41 @@ i++++; //这是违反了内置类型的使用惯例的
 **More Effective C++ 7**
 不要重载 “&&” “||” 或 “,”
 重载后，会使得“&&” “||”运算符不具备短路求值的特性。重载后，会使得“,”不具备先计算左侧表达式，后计算右侧表达式。
+
+**Effective Modern C++ 5**
+使用auto带来的好处：
+1. 避免未初始化的变量，因为如果不初始化auto变量，编译器将报错。
+2.避免变量类型声明和实际赋值类型不相符合时，引起的隐式类型转换的问题，auto使得变量声明类型和赋值类型相同。
+3. 它可以直接持有封装体，也就是配合lamdba表达式配合使用。
+auto是一个可选项，不是必选项。如果显示写清楚类型声明可以带来可读性增强的话，则可以考虑不使用auto。
+auto 变量一定要被初始化， 并且对由于类型不匹配引起的兼容和效率问题有免疫力， 可以简单化代码重构， 一般会比显式的声明类型敲击更少的键盘。
+auto 类型的变量也受限于条款2和条款6中描述的陷阱。
+
+**Effective Modern C++ 6**
+
+
+**Effective Modern C++ 7**
+
+
+**Effective Modern C++ 8**
+
+
+**Effective Modern C++ 9**
+
+
+**Effective Modern C++ 10**
+
+
+**Effective Modern C++ 13**
+
+
+**Effective Modern C++ 15**
+
+
+**Effective Modern C++ 16**
+
+
+*HERE，搞完这些就直接从Effective Modern C++ 23继续*
 
 ##### 高效率相关
 
@@ -1600,21 +1635,107 @@ int main()
 *在面向对象部分的信息整理完成后，再跟CGL对应章节核对一遍*
 
 ### 模板元编程(编译期计算)语法
+
 #### 资料
 C++模板元编程详细教程(已经保存到WIZNOTE中)
 https://blog.csdn.net/fl2011sx/article/details/128077440
 
-模板元编程简要介绍(已经保存到WIZNOTE中)
-https://netcan.github.io/presentation/metaprogramming/#/
-
 C++ 11 14 17的模板元编程语法(已经保存到WIZNOTE中)
 https://zhuanlan.zhihu.com/p/672410503
+
 #### 计划
 学习C++模板元编程详细教程：https://blog.csdn.net/fl2011sx/article/details/128077440
 然后整理出一个代码示例在ModerCppStarter中，然后再阅读Effective Modern C++，和EffectiveC++部分，将这些内容整理在此NOTE.md笔记中。
 
-##### 一
-类模板
+**什么是模板元编程**
+从这个模板元的元老中可以看出，它有2个要素，一个是用于静态判断的cond，另一个是用于类型处理的T。所以，模板元编程无非就是做两件事，一个是静态数学计算（包括了布尔类型的逻辑运算和整数类型的数值运算。这里的「静态」是指编译期行为。）；另一个是类型处理（type traits，也被翻译为「类型萃取」）。
+所以，静态计算和类型处理的编写过程，就称为「模板元编程」。把这两个要素的结果放到enable_if（或类型行为的模板）中，再通过SFINAE特性生成需要的代码再去参与编译。
+强调一下，模板元编程是完完全全的编译期行为，任何设计运行期才能确定的数据都不可用，因此我们的编程思维跟普通代码编写的思维也是完全不同的，请读者一定要注意。
+**两个要素**
+静态计算和类型处理
+
+##### 模板元编程相关语法
+**Effective Modern C++ 1**
+```cpp
+template<typename T> void f(ParamType param);
+f(expr);
+```
+在编译的时候， 编译器通过 expr 来进行推导出两个类型： 一个是 T 的， 另一个是 ParamType 。 通常来说这些类型是不同的， 因为 ParamType 通常包含一些类型的装饰， 比如 const 或引用特性。 
+`template<typename T> void f(T& param);`
+在模板类型推导的时候， 有引用特性的参数的引用特性会被忽略。也就是T的类型不带引用。T的类型可以带const也可以不带const。
+在推导通用引用参数的时候， 左值会被特殊处理。 T 和 ParamType 都会被推导成左值引用。
+在推导按值传递的参数时候， const 和/或 volatile 参数会被视为非 const 和非 volatile。
+在模板类型推导的时候， 参数如果是数组或者函数名称， 他们会被退化成指针， 除非是用在初始化引用类型。
+
+**Effective Modern C++ 2**
+理解auto类型推导。
+auto类型推导通常和模板类型推导一样。除了一点：auto类型推导假定花括号初始化代表的类型是std::initializer_list,但是模板类型推导却不是这样。
+auto在函数返回值或者lambda参数里面执行模板的类型推导，而不是通常意义的auto类型推导。
+
+**Effective Modern C++ 3**
+理解decltype
+decltype几乎总是得到一个变量或表达式的类型而不需要任何修改。
+对于非变量名的类型为 T 的左值表达式， decltype 总是返回 T&。
+C++14 支持 decltype(auto) ， 它的行为就像 auto ,从初始化操作来推导类型， 但是它推导类型时使用 decltype 的规则。
+```cpp
+template<typename Container, typename Index> // C++14;
+auto authAndAccess1(Container &c, Index i) // not quite
+{ // correct
+	authenticateUser();
+	return c[i];
+}
+
+void test1(){
+	std::deque<int> d;
+	...
+	authAndAccess1(d, 5) = 10; // authenticate user, return d[5], then assign 10 to it; this won't compile!
+}
+
+template<typename Container, typename Index> // C++14; works,
+decltype(auto) // but still
+authAndAccess2(Container &c, Index i) // requires
+{ // refinement
+	authenticateUser();
+	return c[i];
+}
+
+void test2(){
+	std::deque<int> d;
+	...
+	authAndAccess2(d, 5) = 10; // success compile!
+}
+```
+**Effective Modern C++ 4**
+指导如何查看类型推导。优先使用Boost TypeIndex库因为它最准确。
+类型推导的结果常常可以通过IDE的编辑器， 编译器错误输出信息和Boost TypeIndex库的结果中得到。
+一些工具的结果不一定有帮助性也不一定准确， 所以对C++标准的类型推导法则加以理解是很有必要的。
+```cpp
+#include <boost/type_index.hpp>
+template<typename T>
+void f(const T& param)
+{
+	using std::cout;
+	using boost::typeindex::type_id_with_cvr;
+	// show T
+	cout << "T = "
+	<< type_id_with_cvr<T>().pretty_name()
+	<< '\n';
+	// show param's type
+	cout << "param = "
+	<< type_id_with_cvr<decltype(param)>().pretty_name()
+	<< '\n';
+	…
+}
+```
+
+##### 一 模板分类
+要问C++模板有哪些分类:
+1. 模板类
+2. 模板函数
+3. 模板全局常量
+4. 模板类型重命名
+
+- 类模板
 class,union和struct都可以模板化。
 ```cpp
 template <typename T, size_t size>
@@ -1632,19 +1753,898 @@ void Demo() {
   arr.at(1) = 6;
 }
 ```
+- 模板函数,模板函数就是用模板生成一个函数，主体是一个函数。当然，普通函数、成员函数、包括lambda表达式都是可以写成模板的。
+```cpp
+// 普通模板函数
+template <typename T>
+void show(const T &item) {
+  std::cout << item << std::endl;
+}
+
+class Test {
+ public:
+  // 模板成员函数
+  template <typename T>
+  void mem_func(const T &item) {}
+};
+
+// 模板lambda表达式（只能是全局变量承载）
+template <typename T>
+auto f = [](const T &item) {}
+
+void Demo() {
+  show<int>(5);
+  
+  Test t;
+  t.mem_func<double>(5.1);
+  
+  f<char>('A');
+}
+```
+- 模板全局常量
+模板的全局常量一般是由一个模板类来做「引导」的，而且由于模板必须在编译期实例化，因此模板全局常量一定也会在编译期有一个确定的值，必须由constexpr修饰，而不可以是「变量」.
+```cpp
+// 用于引导模板全局常量的模板类(用于判断一个类型的长度是否大于指针)
+template <typename T>
+struct IsMoreThanPtr {
+  static bool value = sizeof(T) > sizeof(void *);
+};
+// 全局模板常量
+template <typename T>
+constexpr inline bool IsMoreThanPtr_v = IsMoreThanPtr<T>::value;
+```
+- 模板类型重命名
+C++中的类型重命名主要有两种语法，一种是typedef，另一种是using，它们都支持模板生成，效果是相同的。
+模板类型重命名可以直接借用一个模板类来做「偏特化」，或者也可以像模板全局常量一样由一个模板类来引导，请看下面例程：
+```cpp
+// 普通的模板类
+template <typename T, size_t size>
+class Array {};
+// 偏特化作用的模板类型重命名
+template <typename T>
+using DefaultArray = Array<T, 16>;
+// 也可以作用给typedef语法
+template <typename T>
+typedef DefaultArray<T *> DefaultPtrArray;
+
+void Demo() {
+  DefaultArray<int> arr1; // 相当于Array<int, 16> arr1;
+  DefaultPtrArray<char> arr2; // 相当于Array<char *, 16> arr2;
+}
+// 用于引导的模板类
+template <typename T> struct GetPtr {
+  using type = T *;
+};
+// 用模板类引导的模板类型重命名
+template <typename T> 
+using GetPtr_t = typename GetPtr<T>::type;
+
+void Demo() {
+  GetPtr_t<int> p; // 相当于typename GetPtr<int>::type p; 也相当于int *p;
+}
+```
+
+C++的模板参数分类：
+1. 类型
+2. 整数
+3. 模板
+
+- 类型模板参数
+show是一个模板函数，接受1个参数T，并且它是一个类型参数。实例化的时候，就需要在T的位置传入一个类型标识符（例如int、void *或者std::string）。
+类型模板参数除了直接使用以外，还可以和其他符号（比如*、&、&&、const等）进行组合。<typename T>typename关键字表示类型参数，也可以写<class T>，推荐使用typename。
+```cpp
+
+template <typename T>
+void show(T t) {
+  std::cout << t << std::endl;
+}
+void Demo() {
+  show<int>(5);
+  show<void *>(nullptr);
+  show<std::string>("abc");
+}
+```
+- 整数模板参数
+那么这里的size就是整数，当然不止size_t类型，一切整型都是支持的，比如说int、short、char，甚至bool都是可以。模板是编译期语法，因此，这里的整型数据也必须是编译期能确定的，比如说常数、常量表达式等，而不可以是动态的数据。
+```cpp
+template <typename T, size_t size>
+class Array {
+  // ...
+ private:
+  T data[size];
+};
+// 整数参数的模板
+template <int N>
+struct Test {};
+
+void Demo() {
+  Test<5> t1; // 常数OK
+
+  constexpr int a = 5;
+  Test<a> t2; // 常量表达式OK
+
+  const int b = 6;
+  Test<b> t3; // ERR，b是只读变量，不是常量
+
+  Test<a * 3> t4; // 常数运算OK
+
+  std::vector<int> ve {1, 2, 3};
+  Test<ve.size()> t5; // ERR，size是运行时数据
+  Test<ve[1]> t6; // ERR，ve的成员是运行时数据
+
+  int arr1[] {1, 2, 3};
+  Test<arr1[0]> t6; // ERR，arr1的成员是运行时数据
+
+  constexpr int arr2[] {2, 4, 6};
+  Test<arr2[1]> t7; // 常量表达式修饰的普通数组成员OK
+}
+```
+- 浮点数
+在C++20以前，只允许整数参数，但从C++20起，可以支持浮点数做参数，同样，只要是编译期能确定的量就OK：
+- 整数的衍生类型
+说到整数的衍生类型，也就是说「可以用整数表示」，或者说「本质上是整数」的类型。
+- 指针类型
+如果说某一个变量，它的地址在程序运行期间能够一直不发生改变，或者说它不会中途被释放的话，我们就认为这个变量的地址是「确定的」。只要是「程序运行中确定的」地址，就可以用来实例化模板。
+```cpp
+template <int *p>
+void f(int data;) {
+  *p = data;
+}
+int a = 1; // 全局变量
+
+class Test {
+ public:
+  int m1; // 成员变量
+  static int m2; // 静态成员变量
+};
+
+int Test::m2 = 4;
+
+void Demo() {
+  int b = 2; // 局部变量
+  static int c = 3; // 静态局部变量
+  
+  f<&a>(0); // OK，a是全局变量，程序运行期间不会被释放
+  f<&b>(0); // ERR，b是局部变量，在局部代码块运行完毕后会被释放，所以说b的地址也有可能不仅仅表示b，回收后可能会表示其他数据，所以不可以
+  f<&c>(0); // OK，c是静态局部变量，不会随着代码块的结束而释放
+  
+  f<&Test::m1>(0); // ERR，Test::m1其实并不是变量，要指定了对象才能确定，因此是非确定值，所以不可以
+  f<&Test::m2>(0); // OK，Test::m1本质就是一个全局变量，在程序运行期间不会被释放，所以OK
+}
+```
+- 函数类型
+函数指针类型
+既然讲到指针类型，那我们也逃不开一类特殊的指针——函数指针。函数指针其实本质上也是地址，所以同样属于整数的衍生类型。而分配给函数（指令段）的地址在程序执行过程中就是不会变的，但如果用的是变量的值那么同样会因为动态数据问题而报错。
+```cpp
+// 函数指针类型模板参数
+template <void (*func)()>
+void f() {
+  func();
+}
+
+// 普通函数
+void f1() {}
+
+class Test {
+ public:
+  void f2() {} // 成员函数
+  static void f3() {} // 静态成员函数
+};
+
+void Demo() {
+  void (*pf1)() = &f1; // 局部变量
+  constexpr void (*pf2)() = &f1; // 常量表达式
+
+  f<&f1>(); // OK，函数本身就是地址不可变的
+  f<&Test::f2>(); // ERR，虽然成员函数也是地址不可变的，但&Test::f2的类型是void (Test::*)()，类型不匹配所以报错
+  f<&Test::f3>(); // OK，静态成员函数是地址不可变的，类型也匹配
+  f<pf1>(); // ERR，pf1是静态数据，编译期值不确定，所以不可以
+  f<pf2>(); // OK，用常量表达式修饰的在编译期可以确定，所以可以
+}
+```
+函数类型
+```cpp
+// 函数类型模板参数
+template <void func()>
+void f() {
+  func();
+}
+
+// 普通函数
+void f1() {}
+
+class Test {
+ public:
+  void f2() {} // 成员函数
+  static void f3() {} // 静态成员函数
+};
+
+void Demo() {
+  void (*pf1)() = &f1; // 局部变量
+  constexpr void (*pf2)() = &f1; // 常量表达式
+
+  f<f1>(); // OK
+  f<&f1>(); // OK
+  f<Test::f3>(); // OK
+  f<&Test::f3>(); // OK
+  f<pf2>(); // OK
+  // 与前一例程相同，不再赘述
+}
+```
+模板类型
+这个类型非常容易让人晕菜，所谓「模板类型的模板参数」，其实就是嵌套模板的意思，把「某一种类型的模板」作为一个参数传给另一个模板。请看示例：
+```cpp
+// 模板类型的模板参数
+template <template <typename, typename> typename Tem>
+void f() {
+  Tem<int, std::string> te;
+  te.show();
+}
+
+// 符合条件的模板类
+template <typename T1, typename T2>
+struct Test1 {
+  void show() {std::cout << 1 << std::endl;}
+};
+
+template <typename T1, typename T2>
+struct Test2 {
+  void show() {std::cout << 2 << std::endl;}
+};
+
+// 不符合条件的模板类
+template <int N>
+struct Test3 {
+  void show() {std::cout << 3 << std::endl;}
+};
+
+void Demo() {
+  f<Test1>(); // 注意这里，要传模板，而不是实例化后的模板
+  f<Test<int, int>>(); // ERR，模板参数类型不匹配
+  
+  f<Test2>(); // OK
+  f<Test3>(); // ERR，类型不匹配
+}
+```
+- 变参模板
+所谓的「变参」指的是「参数数量可以是任意的」，变参模板并不是独立的一种类型参数，我们可以认为它是「一组参数」，可以是一组类型参数，也可以是一组非类型参数。
+```cpp
+template <typename... Args> auto sum(Args... args) {
+  return (... + args);
+}
+// 以下是测试Demo
+void Demo() {
+  auto a = sum(1, 2, 3, 4); // 10
+  auto b = sum(1.5, 2, 3l); // 6.5
+  auto c = sum(std::string("abc"), "def", "111"); // std::string("abcdef111")
+  auto d = sum(2); // 2
+}
+```
+相信读者不难看得出，这三个点就表示变参，不过三个点书写的位置是有讲究的，不同的位置表示的含义也略有不同。在上面的例子中，模板参数含有一个typename... Args，其中的三个点顿在了typename后面，表示这是一组类型参数，可以叫它「包（pack）」，而后面的Args就是这个「包」的名字。那么我们就知道，Args代表的并不是一个单一类型，而是一组类型参数组成的包。注意，模板的变参结构跟其他变参结构类似，都是只能出现一次，并且必须在列表最后，否则会造成解析的歧义。同时，变参结构在实际传递时，参数可以为空。
+在函数参数中，可以看到有个Args...，由于Args本身是个包，那么给包后面加三个点表示「解包（Unpack）」，或者叫「展开（Unfold）」。所以参数中的解包，我们可以解读为，把Args中的每一个类型，平铺开，每一个类型都要对应一个函数的入参。而后面的args代表的就是这一组参数，它同样是一个「包」，但它则是由形参（本质就是局部变量）组成的包。
+函数体中，可以看到出现了(... + args)的表达式，大家应该能猜到，这也是一种「解包」的语法，但这属于「按符号解包」的方式，与之对应的还有一种「直接解包」的方式，下面来分别讲解。
+
+- 变参的直接展开
+所谓「直接展开」，其实指的是按「逗号」展开，逗号不仅仅指逗号运算，任何以逗号为分割符的地方都支持变参的展开。比如说，给一片自定义的内存资源池适配一个创建对象的方法，就可以这样来写（简化一下，先不考虑左右值传递的问题）：
+```cpp
+std::byte memory[16384]; // 这是一片内存资源池
+void *head = memory; // 可用空间的头指针
+// 在内存资源池上创建对象的函数
+template <typename T, typename... Args>
+T &Create(Args... args) {
+  auto &obj = *new(head) T(args...);
+  head += sizeof(T);
+  return obj;
+}
+struct Test {
+  Test(int, double) {}
+};
+
+void Demo() {
+  auto test = Create<Test, int, double>(1, 2.5); // 会通过Test(int, double)构造函数构造
+}
+```
+上面实例化的Create<Test, int, double>类型，首先模板参数在展开的时候，Args中含有两个类型，分别是int, double，这里就是用逗号展开的。后面的args中也是含有两个变量，同样是按照逗号隔开，所以其实实例化后的函数是这样的：
+```cpp
+Test &Create(int arg1, double arg2) {
+  auto &obj = *new(head) Test(arg1, arg2);
+  head += sizeof(Test);
+  return obj;
+}
+```
+- 变参的嵌套展开
+刚才我们介绍的是直接展开，但有时可能我们要在变参的基础上嵌套一个什么结构，然后再展开的。
+```cpp
+// 把数组中的某些角标元素取出来，组成新数组
+template <typename T, int... N>
+std::vector<T> GetSubVector(const std::vector<T> &src) {
+  return std::vector<T> {src.at(N)...};
+}
+
+// 示例Demo
+void Demo() {
+  std::vector<int> ve {0, 11, 22, 33, 4};
+  auto ve2 = GetSubVector<int, 1, 4, 1, 3, 0>(ve);
+  // 执行后ve2会变成{11, 4, 11, 33, 0}
+}
+```
+上面这个例子中，N是一个包，并且是整数包，对它展开的时候就没有用N...这样直接展开，而是加了一层结构，按照src.at(N)...的方式展开。这样展开后，每一个参数都会嵌套相同的结构，并且它们之间也是用逗号隔开的。所以GetSubVector<int, 1, 4, 1, 3, 0>其实会实例化成：
+```cpp
+std::vector<int> GetSubVector(const std::vector<int> &src) {
+  return std::vector<int> {src.at(1), src.at(4), src.at(1), src.at(3), src.at(0)}; // N的嵌套方式展开
+}
+```
+- 按照符号展开
+在C++17以前，变参只可以用逗号展开。
+```cpp
+// 递归终止条件（只有1个参数的情况）
+template <typename T>
+auto sum(T arg) {
+  return arg;
+}
+
+// 2个以及以上的情况要进行递归
+template <typename Head, typename... Args>
+auto sum(Head head, Args... args) {
+  return head + sum<Args...>(args...);
+}
+```
+
+```cpp
+void Demo() {
+  auto a = sum<double, int, int, double>(1.5, 2, 2, 1.6);
+}
+//首先，sum<double, int, int, double>不符合只有1个参数的条件，所以会命中下面的模板，实例化后的样子是：
+auto sum(double head, int arg0, int arg1, double arg2) {
+  return head + sum<int, int, double>(arg0, arg1, arg2);
+}
+//它会要求调用一个sum<int, int, double>函数，所以会继续实例化：
+auto sum(int head, int arg0, double arg1) {
+  return head + sum<int, double>(arg0, arg1);
+}
+//又会要求调用一个sum<int, double>，继续实例化：
+auto sum(int head, double arg0) {
+  return head + sum<double>(arg0);
+}
+//又会要求调用一个sum<double>，但是此时，命中了上面的模板定义，所以会按照上面的方式来实例化，变成：
+auto sum(double arg) {
+  return arg;
+}
+```
+C++17提供了另一种变参展开方式，就是按照一个特定的符号展开（而不是逗号），可以极大程度上简化问题，
+这里的(... + args)就是折叠表达式，表示按照加号展开。我们知道，运算符是有优先级和合并顺序的，因此要按符号展开，就必须指定这种展开顺序，换句话说，((a ⊕ b) ⊕ c)和(a ⊕ (b ⊕ c))到底选哪一种的问题（这里的「 ⊕ 」代指任意二元运算符）。
+对于这个问题，C++的解决方案是通过变参包名和三个点的位置来示意（注意，这里就是一种强行的规定，没什么道理可言），三个点在左的，表示从左到右合并；三个点在右边的，表示从又到左合并。
+我们刚才提到，折叠表达式只支持二元运算符，既然是二元运算符，如果遇到只有一个参数的时候怎么办呢？这时这个符号会被忽略，直接返回原值。
+```cpp
+template <typename... Args>
+auto sum(Args... args) {
+  return (... + args);
+}
+```
+假如说我并不是希望仅仅包内的内容自行结合，而是要结合一个额外的内容呢？
+要「把第一个参数先跟cout结合，第二个参数应当跟前面的运算结果（同样还是cout）再集合，之后都是依次跟前面的结合」。
+```cpp
+template <typename... Args>
+void Show(Args... args) {
+  (std::cout << ... << args); // 注意括号还是不能丢
+}
+//展开后的形式为：
+//((((std::cout << arg0) << arg1) << ...) << argn)
+```
+我们把这种有额外内容参与的展开方式称为「二元展开」，相对的，前面那种方式就叫「一元展开」。注意，这里的「一元」「二元」并不表示运算符，因为不管是一元展开还是二元展开，都只能用二元运算符展开。这里的几元表示的是参与展开的成员有几个，如果只有一个包，自己内部展开的，就叫「一元展开」；而这种除了一个包，还需要一个额外内容参与展开的，就叫「二元展开」了。同理，二元展开也有向右展开的版本：`(args ⊕ ... ⊕ obj)`
+```cpp
+(a + ... + args); // 二元展开，从左侧开始，先与a结合
+(args ^ ... ^ a); // 二元展开，从右侧开始，先与a结合
+(a - args - ...); // ERROR！语法错误
+(... & args & a); // ERROR！语法错误
+a - (args - ...); // 一元展开，展开后再与外面的内容进行运算
+(... & args) & a; // 一元展开，展开后再与外面的内容进行运算
+```
+
+##### 二 模板参数自动推导
+模板参数自动推导：
+1. 根据函数参数自动推导（模板函数）
+2. 根据构造参数自动推导（模板类）
+3. 自定义构造推导（模板类）
+
+- 根据函数参数自动推导
+模板参数的自动推导是完全按照auto的推导原则进行的,仅仅保留「最简类型」。
+```cpp
+template <typename T>
+void show(T t) {
+  std::cout << t << std::endl;
+}
+
+void Demo() {
+  int a = 5;
+  show(a); // [1],触发模板参数的自动推导。此时相当于show<int>(a)
+  show(5); // [2],触发模板参数的自动推导。此时相当于show<int>(5)
+}
+
+template <typename T>
+void f1(T &t) {}
+
+template <typename T>
+void f2(const T &t) {}
+
+template <typename T>
+void f3(T *p) {}
+
+void Demo() {
+  f1(5); // 会报错，因为会推导出f1<int>，从而t的类型是int &，不能绑定常量
+  int a = 1;
+  f1(a); // f1<int>，t的类型是int &
+  f2(a); // f2<int>，t的类型是const int &
+  f3(a); // 会报错，因为会推导出f3<int>，此时t的类型是int *，int不能隐式转换为int *
+  f3(&a); // f3<int>， t的类型是int *
+}
+```
+T &&也可以绑定可变值
+1. 当T &&匹配到可变值（也就是C++11里定义的「左值」）的时候，T会推导出左值引用，再根据引用折叠原则，最终实例化为左值引用
+2. 当T &&匹配到不可变值（也就是C++11里定义的「右值」）的时候，T会推导出基本类型，最终实例化为右值引用
+对于auto &&来说，我们只关心最终推导出的类型，并不会关心auto本身到底代表了什么。但对于模板的类型推导则不同，我们既要关心「模板参数推导出了什么类型」，又要关心「模板实例化后的函数参数是什么类型」。换做上面的例子来说就是，我们既要关系T推导出了什么，又要关心当T确定以后，t会变成什么类型。
+```cpp
+template <typename T> void f4(T &&t) {}
+void Demo() {
+  int a = 5;
+  const int b = 10;
+  f4(1); // f4<int>，t的类型是int &&。利用函数参数自动推导出的模板参数永远不会推导出右值引用，T不为右值引用。
+  f4(a); // f4<int &>，t的类型是int &
+  f4(b); // f4<const int &>，t的类型是const int &
+  f4(std::move(a)); // f4<int>，t的类型是int &&
+}
+```
+除了与引用、指针等组合外，还可以跟其他模板进行嵌套组合，编译器同样可以推导出正确的类型，请看例程：
+```cpp
+template <typename T>
+struct Test {};
+
+template <typename T>
+void f(const Test<T> &t) {}
+
+void Demo() {
+  Test<int> t1;
+  Test<char> t2;
+
+  f(t1); // 推导出f<int>，t的类型是const Test<int> &
+  f(t2); // 推导出f<char>，t的类型是const Test<char> &
+}
+```
+这种技巧非常适用于各种模板库（比如说STL），例如我们希望把一个vector的内容连续地放入一个buffer中，就可以这样来写：
+```cpp
+#include <vector>
+#include <cstdlib>
+#include <cstddef>
+
+template <typename T>
+void CopyVec2Buf(const std::vector<T> &ve, void *buf, size_t buf_size) {
+  if (buf_size < ve.size() * sizeof(T)) {
+    return;
+  }
+  std::memcpy(buf, ve.data(), ve.size() * sizeof(T));
+}
+
+void Demo() {
+  std::vector<int> ve{1, 2, 3, 4};
+  std::byte buf[64];
+  // 把ve的内容连续地复制到buf中
+  CopyVec2Buf(ve, buf, 64); // 这里会推导出CopyVec2Buf<int>
+}
+```
+
+- 模板类是通过构造参数来推导
+```cpp
+template <typename T1, typename T2>
+class Pair {
+ public:
+  Pair(const T1 &t1, const T2 &t2);
+  void show() const;
+ private:
+  T1 t1_;
+  T2 t2_;
+};
+
+template <typename T1, typename T2>
+Pair<T1, T2>::Pair(const T1 &t1, const T2 &t2) : t1_(t1), t2_(t2) {}
+
+template <typename T1, typename T2>
+void Pair<T1, T2>::show() const {
+  std::cout << "(" << t1_ << ", " << t2_ << ")" << std::endl;
+}
+
+void Demo() {
+  Pair pair1{'a', 3.5}; // Pair<char, double>
+  pair1.show();
+  
+  int a = 5;
+  std::string str = "abc";
+  
+  Pair pair2{a, str}; // Pair<int, std::string>
+  pair2.show();
+}
+```
+自定义构造推导
+为了「促使」模板类能够按照我们希望的方式来进行类型推导并实例化，当我们发现自动的类型推导不满足需求的时候，就可以考虑添加一种自定义的构造推导，这个语法称之为「推导指南(Deduction Guide)」。当定义了推导指南后，编译期会优先根据推导指南来进行实例化，如果没有合适的推导指南，才会根据构造函数参数来进行实例化。
+相信有的读者看到这里会想，这不是废话嘛……本来不也是按这种方式推导的呀？但其实并不是！因为推导指南会按照函数调用法则来识别，也就是说，这里的Test(T)应当看做一个函数，当我们把const char [4]类型的参数传进函数参数的时候，就会转换为const char *。所以拥有了推导指南后，T会识别为const char *，再根据指南，实例化的结果就是Test<const char *>了。
+```cpp
+template <typename T>
+struct Test {
+  Test(const T &t): mem_(t) {}
+  T mem_;
+};
+
+// Deduction Guide
+template <typename T>
+Test(T)->Test<T>;
+
+void Demo() {
+  Test t{"abc"}; // Test<const char *>
+}
+```
+##### 三 模板特化
+这里的问题就在于，对于字符串类型（这里指原始C字符串，而不是std::string）来说，「相加」并不是简单的+=，因为字符串主要是用字符指针来承载的，指针相加是不合预期的。我们希望的是字符串拼接。
+因此，我们希望，单独针对于char *的实例化能够拥有不同的行为，而不遵从「通用模板」中的定义。这种语法支持就叫做「特化」，或「特例」。可以理解为，针对于模板参数是某种特殊情况下进行的特殊实现。
+因此，我们在通用模板的定义基础上，再针对char *类型定义一个特化：
+```cpp
+#include <cstring>
+
+template <typename T>
+void add(T &t1, const T &t2) {
+  t1 += t2;
+}
+
+template <> // 模板特化也要用模板前缀，但由于已经特化了，所以参数为空
+void add<char *>(char *&t1, char *const &t2) { // 特化要指定模板参数，模板体中也要使用具体的类型
+  std::strcat(t1, t2);
+}
+
+void Demo() {
+  int a = 1, b = 3;
+  add(a, b); // add<int>是通过通用模板生成的，因此本质是a += b，符合预期
+
+  char c1[16] = "abc";
+  char c2[] = "123";
+
+  add(c1, c2); // add<char *>有定义特化，所以直接调用特化函数，因此本质是strcat(c1, c2)，符合预期
+}
+```
+- 编译与链接问题
+模板实现需要放在头文件里，才能正确的编译和链接。
+否则编译可以通过，但是链接会出问题。详细可参考原文：https://blog.csdn.net/fl2011sx/article/details/128314495
+
+- 全特化
+全特化的模板其实已经不是模板了，在这里f<int>会按照普通函数一样来进行编译和链接。所以直接把实现放在头文件中，就有可能在链接时重定义。解决方法有两种，第一种就是我们手动补上inline关键字，提示编译期要打标全局唯一。
+```cpp
+#pragma once
+template <typename T>
+void f(T t) {} // 通用模板，编译器用通用模板生成的实例会自动打上inline
+
+template <>
+inline void f<int>(int t) {} // 针对int的全特化，必须手动用inline修饰后才能在编译期打标保证链接全局唯一
+```
+第二种方法就是，当做普通函数处理，我们把实现单独抽到一个编译单元中独立编译，最后在链接时才能保证唯一：
+```cpp
+//tmp.h
+#pragma once
+template <typename T>
+void f(T t) {} // 通用模板
+
+template <>
+void f<int>(int t); // 针对int的全特化声明（函数声明）
+
+//tmp.cpp
+#include "tmp.h"
+
+template <>
+void f<int>(int t) {} // 函数实现
+```
+另外，对于特化的模板函数来说，参数必须是按照通用模板的定义来写的（包括个数、类型和顺序），但对于模板类来说，则没有任何要求，我们可以写一个跟通用模板压根没什么关系的一种特化，比如说：
+```cpp
+template <typename T>
+struct Test { // 通用模板中有2个成员变量，1个成员函数
+  T a, b;
+  void f();
+};
+
+template <>
+struct Test<int> { // 特化的内部定义可以跟通用模板完全不同
+  double m;
+  static int ff();
+}
+```
+- 偏特化
+偏特化的模板本质上还是模板，它仍然需要编译期来根据需要进行实例化的，所以，在链接方式上来说，全特化要按普通函数/类/变量来处理，而偏特化模板要按模板来处理。先明确一个点：模板函数不支持偏特化，因此偏特化讨论的主要是模板类。
+```cpp
+#include <iostream>
+
+template <typename T1, typename T2>
+struct Test {
+};
+
+template <typename T>
+struct Test<int, T> {
+  static void f();
+};
+
+template <typename T>
+void Test<int, T>::f() {
+  std::cout << "part specialization" << std::endl;
+}
+
+void Demo() {
+  Test<int, int>::f(); // 按照偏特化实例化，有f函数
+  Test<int, double>::f(); // 按照偏特化实例化，有f函数
+  Test<double, int>::f(); // 按照通用模板实例化，不存在f函数，编译报错
+}
+```
+如果偏特化和全特化同时存在呢？
+先说答案，上面的实例会按照【2】的方式，也就是直接调用全特化。大致上来说，全特化优先级高于偏特化，偏特化高于通用模板。
+对于函数来说，模板函数不支持偏特化，但支持重载，并且重载的优先级高于全特化。比如说：
+```cpp
+void f(int a, int b) {} // 重载函数
+
+template <typename T1, typename T2>
+void f(T1 a, T2 b) {} // 通用模板
+
+template <>
+void f<int, int>(int a, int b) {} // 全特化
+
+void Demo() {
+  f(1, 2); // 会调用重载函数
+  f<>(1, 2); // 会调用全特化函数f<int, int>
+  f(2.5, 2.6); // 会用通用模板生成f<double, double>
+}
+```
+有的资料会管下面这种特化叫做「模式特化」，用于区分普通的「部分特化」。但它们其实都属于偏特化的一种，因为偏特化都是相当于特化了参数的范围。
+```cpp
+template <typename T>
+struct Tool {}; // 这是另一个普通的模板类
+
+template <typename T>
+struct Test {}; // 【0】通用模板
+
+template <typename T>
+struct Test<Tool<T>> {}; // 【1】偏特化
+
+void Demo() {
+  Test<int> t1; // 使用【0】实例化Test<int>
+  Test<Tool<int>>; // 使用【1】实例化Test<Tool<int>>
+  Test<Tool<double>>; // 使用【1】实例化Test<Tool<double>>
+}
+```
+##### 四 特化模板的优先级匹配
+偏特化模板匹配的原则就是「特化程度更高者优先」，如果遇到可以同时命中多种的时候，将会报错（除非有更加匹配的特化，或者有对应的全特化，那么它会优先）。
+匹配时更关注的是参数的「形式」，而非个数
+```cpp
+template <typename T1, typename T2, typename T3>
+struct Test {}; // 【0】
+
+template <typename T1, typename T2>
+struct Test<T1, T2, int> {}; // 【1】
+
+template <typename T>
+struct Test<int, int, T> {}; // 【2】
+
+void Demo() {
+  Test<int, int, int> t; // 匹配哪个？
+}
+//这里报错
+//Ambiguous partial specializations of 'Test<int, int, int>'
+```
+
+##### SFINAE
+编译器在实例化模板时，如果遇到多个同名模板，则会逐一「尝试」匹配，在这个过程中如果发生了失败，并不会马上报错，因此把这种特性称之为「匹配失败不是错误（Substitution Failure Is Not An Error，简称SFINAE）」。
+```cpp
+template <typename T, bool Cond>
+struct EnableIf {};
+
+template <typename T>
+struct EnableIf<T, true> {
+  using type = T;
+};
+
+template <typename T>
+void f(typename EnableIf<T, sizeof(T) <= sizeof(void *)>::type t) {
+  std::cout << 1 << std::endl;
+}
+
+template <typename T>
+void f(typename EnableIf<T, (sizeof(T) > sizeof(void *))>::type const &t) {
+  std::cout << 2 << std::endl;
+}
+
+void Demo() {
+  f<int>(1); // 打印1
+  
+  Test t;
+  f<Test>(t); // 打印2
+}
+```
+所谓的「匹配」就是指，编译器会拿着实参去尝试实例化，比如，实例化f<int>的时候，编译器会先尝试用第一个模板函数来实例化.然后这里的判断条件是符合的，所以替换为true.这时会去实例化EnableIf<int, true>，命中了它的偏特化，里面是有type的，而typename EnableIf<int, true>::type就是int，所以这里就变成了`void f(int t);`
+
+接下来实例化EnableIf<Test, false>，没有命中偏特化，因此要用通用模板来实例化。但EnableIf<Test, false>中并没有type这个成员。因此，typename EnableIf<Test, false>::type这个表达就是个错误的表达，无法用它来实例化。我们把这个过程称之为「匹配失败（Substitution Failure）」。
+注意，重点来了！！虽然匹配失败了，但这时编译器并不会立刻报错，而是会继续尝试匹配其他的模板，因为我们还有一个模板函数f还没尝试呢！于是，编译器会继续用第二个模板尝试实例化.于是按照这个模板进行实例化，函数原型是：void f<Test>(Test const &t)。
+
+**手撸一些元编程工具**
+参考代码在effective_c++/stl/中。
+##### 模板元编程两大要素
+**什么是模板元编程**
+从这个模板元的元老中可以看出，它有2个要素，一个是用于静态判断的cond，另一个是用于类型处理的T。所以，模板元编程无非就是做两件事，一个是静态数学计算（包括了布尔类型的逻辑运算和整数类型的数值运算。这里的「静态」是指编译期行为。）；另一个是类型处理（type traits，也被翻译为「类型萃取」）。
+所以，静态计算和类型处理的编写过程，就称为「模板元编程」。把这两个要素的结果放到enable_if（或类型行为的模板）中，再通过SFINAE特性生成需要的代码再去参与编译。
+强调一下，模板元编程是完完全全的编译期行为，任何设计运行期才能确定的数据都不可用，因此我们的编程思维跟普通代码编写的思维也是完全不同的，请读者一定要注意。
+**两个要素**
+静态计算和类型处理
+##### 静态计算
+静态计算主要有整数运算（C++20起也支持浮点数运算了）和逻辑运算。其中逻辑运算是重点，也是我们在模板元编程中最常用到的静态计算。下面分别来介绍。
+https://blog.csdn.net/fl2011sx/article/details/128800210
+静态计算：整数运算，逻辑运算
+实例已经整理到了在effective_c++/stl/中。
+value也是STL中约定的命名方式，原则上可以不遵守，但倡导大家来遵守。value表示的就是这个辅助类的值，既然这个辅助类的作用是「静态处理」，那么自然要输出一个值。
+
+##### 类型处理
+模板元编程的另一要素便是类型处理，英文叫type traits，所以也被翻译为「类型萃取」。其实这里的「萃取」并没有多么高大上的意思，类比前面章节介绍的「数值计算」，数值计算的结果应该是一个数值，而类型处理的结果就应该是个类型。
+https://blog.csdn.net/fl2011sx/article/details/128831824
+实例已经整理到了在effective_c++/stl/中。
+type也是STL中约定的命名方式，原则上可以不遵守，但倡导大家来遵守。type表示的就是这个辅助类的输出，既然这个辅助类的作用是「类型处理」，那么自然要输出一个类型。
+**推导规则**
+https://zhuanlan.zhihu.com/p/420138672
+**类模板参数类型推导指南**
+https://blog.csdn.net/janeqi1987/article/details/100211442
+
+##### 函数类型处理
+declval需要好好了解一下。
+在类型变换中，我们是没有实际数据的，换句话说，不会真的去定义一个T类型的变量，而仅仅是需要它来参与类型的变换。
+为了解决这个「仅需要类型，而不想做构造检测」的问题。
+STL中就提供了declval工具，用来避开构造检测而生成一个纯类型的对象,它不是真正的生成对象，
+```cpp
+struct Test {
+  Test(int); // 没有无参构造
+  void method();
+};
+
+template <typename T>
+struct XXX {
+  using type = decltype(declval<T>().method()); // 这样就不会构造失败了
+  //using type = decltype(T{}.method()); // 这里构造T{}的时候会失败,因为要调用无参构造函数，但是Test并没有无参构造函数。
+};
+```
+然后关于判断类型中是否含有某个成员的的方法，值得好好阅读。
+https://blog.csdn.net/fl2011sx/article/details/128864369，
+
+##### 实现一个动态的get
+采用编译器展开的方法。叫做「编译期展开」，也就是在编译期枚举出运行时可能传入的所有数据，分别生成对应的代码指令，然后当运行期数据确定的时候去执行对应的指令。
+https://blog.csdn.net/fl2011sx/article/details/128933496
+
+##### 多选一结构
+std::variant的简化版本
+https://borehole.blog.csdn.net/article/details/128967835
+
+##### 通过类型访问
+访问器
+https://borehole.blog.csdn.net/article/details/129024453
+
+##### 访问函数
+std::visit
+https://borehole.blog.csdn.net/article/details/129041001
 
 
+##### 对比一下面向对象编程VS模板编程VS函数式编程
+https://borehole.blog.csdn.net/article/details/129041001
+详细体验过模板元编程理念和方法之后，我们要再来介绍一下C++的多范式。虽然一开始C++是为了给C语言扩充以适配OOP（面相对象编程）范式的，但后来成熟了的C++语言本身开放性很足，因此能够使用多种编程范式。同时又因为STL本身并没有使用OOP范式，而是把模板玩出了花，因此「模板范式」在C++中也有了弥足轻重的地位。
+所谓「模板范式」，其核心理念就是「在编译期，确定尽量多的事情」。也就是说，它倾向于把更多的工作交给编译期来完成，以减少程序运行时期的不确定因素。
+面向对象方法
+```cpp
+// 协议类
+class TableViewDataSource {
+ public:
+  virtual std::string GetData() const = 0;
+};
 
-*HERE*
+// 使用者
+class TableView {
+  public:
+   void SetDataSource(TableViewDataSource *data_source);
+   void GetData(){
+		if (data_source_ != nullptr) {
+  			auto data = data_source_->GetData();
+			return data;
+		}
+   }
 
+  private:
+   TableViewDataSource *data_source_;
+};
+class HttpRequest : public SocketReq, public TableViewDataSource {
+ public:
+  ... // 一些自己的方法
+  // 实现协议类方法
+  std::string GetData() const override;
+};
+void Demo() {
+  HttpRequest hr;
+  TableView tv;
+  tv.SetDataSource(&hr);
+  tv.GetData();
+}
+```
+模板编程
+```cpp
+// 用于判断类型T中是否含有GetData方法
+template <typename T, typename V = std::string>
+struct IsDataSource : std::false_value {};
 
+template <typename T>
+struct IsDataSource<T, std::void_t<decltype(std::declval<T>().GetData())>> : std::true_value {};
 
+class TableView {
+ public:
+  template <typename DataSource>
+  std::enable_if_t<IsDataSource<DataSource>::value, std::string>
+  GetData(DataSource *data_source) const {
+    return data_source->GetData();
+  };
+}
+// 不需要多继承，不会改变继承链
+class HttpRequest : public SocketReq {
+ public:
+  ... // 一些自己的方法
+  // 实现数据源方法，不需要虚函数
+  std::string GetData() const;
+};
 
+// 使用时
+void Demo() {
+  HttpRequest hr;
+  TableView tv;
+  tv.GetData(&hr); // hr、tv中都不携带虚函数表，如果hr的类型不符合要求，编译期就直接会被拦截
+}
+```
+函数式编程
+```cpp
+class TableView {
+ public:
+  void SetDataSource(std::function<std::string()> func) {
+    get_data_func_ = func;
+  }
+  std::string GetData() const {
+    return get_data_func_();
+  };
 
+ private:
+  std::function<std::string()> get_data_func_;
+};
 
+class HttpRequest : public SocketReq {
+ public:
+  std::string GetData() const;
+};
 
+void Demo() {
+  TableView tv;
+  HttpRequest hr;
+  
+  tv.SetDataSource(std::bind(&HttpRequest::GetData, &hr)); // 脱离数据源对象实体，直接把函数传进去
+  tv.GetData(); 
+}
+```
+
+*总结一下模板自动类型推导*
 *在网上找找Effecti C++和More Effective C++的哪些条款已经不适用现代C++语法了。更新一下笔记*
 
+### 函数式编程
+lamdba编程。
+
+### 面向过程编程，函数式编程，模板元编程，面向对象编程，泛型编程，宏编程。
+C++中分别在什么时候使用这三种语法？
+预处理期：
+宏编程，C中比较普遍。它跟C++的模板元编程的作用相当。都是在运行期之前进行计算以生成代码。
+编译期：
+模板元编程，主要是要将运行期的计算放到编译期来进行，此外它是实现STL的基石。如果想对面向对象进一步抽象就需要模板编程。
+运行期：
+面向过程编程，例如C语言。适合做一些底层业务，驱动，嵌入式领域。跟底层打交道。不适合现实世界业务领域(比如：售票系统)。
+面向对象编程，适合解决领域业务问题，比如外包。它可以将现实世界的各种元素抽象成为类。
+泛型编程，是将类型参数化，STL的使用就是泛型编程。STL的实现依赖于模板元编程。
+函数式编程，它更适合做科学计算，大数据中的流式处理。不适合将现实世界的领域问题(比如：售票系统)映射到函数式编程的范式中。
 
 ### STL编程(模板编程)语法
 *进阶需要阅读《Effective STL》，已经下载到文档中了。*

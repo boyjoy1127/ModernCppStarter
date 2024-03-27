@@ -1,6 +1,8 @@
 C++语法查询 https://en.cppreference.com/w/
 C++语法查询 https://c.biancheng.net/cplus/
 ModernCppStarter项目中整理出来一个代码样例项目，将CGL、Modern EffectiveC++、EffectiveC++、More EffectiveC++的良好实践都整理进来。
+Effective Modern C++版本：https://cntransgroup.github.io/EffectiveModernCppChinese/3.MovingToModernCpp/item7.html
+本地下载Effective Modern C++的中文版，翻译的不太好。还是看github这个链接的中文版比较好。
 *《深度探索C++对象模型》这本书详细讲解的了对象初始化、析构和内存布局，值得阅读*
 书中的条款在项目中以注释的形式来搞。
 以C++14作为规范
@@ -202,30 +204,290 @@ auto 变量一定要被初始化， 并且对由于类型不匹配引起的兼�
 auto 类型的变量也受限于条款2和条款6中描述的陷阱。
 
 **Effective Modern C++ 6**
+避免auto声明的变量，被一个对外部不可见的代理类类型变量赋值，如下：
+```cpp
+auto someVar = expression of "invisible" proxy class type;
+```
+当auto声明的变量被一个表达式赋值的时候，需要看看这个表达式返回的类型，如果是内部代理类则需要更多关注。
+当auto推导出非预期类型时应该使用显示的类型初始化。
+```cpp
+std::vector<bool> features(const Widget& w);
+Widget w;
 
+bool highPriority = features(w)[5]; // 无问题
+
+auto highPriority = features(w)[5]; // 有问题
+// 如果使用auto，则应该这样写。这样写比直接声明变量类型为bool更好，因为它是一个显示类型转换，明确表达了需要转换的用意。
+auto highPriority = static_cast<bool>(features(w)[5]);
+// 未定义行为,因为highPriority的类型是std::vector<bool>::reference，而我们期望highPriority是bool
+processWidget(w, highPriority); 
+```
 
 **Effective Modern C++ 7**
+区别使用()和{}创建对象
+现代C++推崇使用{}进行初始化，统一初始化的方式。
+```cpp
+int z{0};             //使用花括号初始化
+std::vector<int> v{ 1, 3, 5 };  //v初始内容为1,3,5
+std::atomic<int> ai1{0};
+```
+花括号初始化是最广泛使用的初始化语法，它防止变窄转换，并且对于C++最令人头疼的解析有天生的免疫性。	
+```cpp
+double x, y, z;
+int sum1{ x + y + z };          //错误！double的和可能不能表示为int,仿真窄化。
+
+Widget w2();                    //最令人头疼的解析！声明一个函数w2，返回Widget
+Widget w3{};                    //调用没有参数的构造函数构造对象
+```
+当auto声明的变量使用花括号初始化，变量类型会被推导为std::initializer_list，但是使用相同内容的其他初始化方式会产生更符合直觉的结果。所以，你越喜欢用auto，你就越不能用括号初始化。
+
+在构造函数重载决议中，编译器会尽最大努力将括号初始化与std::initializer_list参数匹配，即便其他构造函数看起来是更好的选择。
+第一，作为一个类库作者，你需要意识到如果一堆重载的构造函数中有一个或者多个含有std::initializer_list形参，用户代码如果使用了括号初始化，可能只会看到你std::initializer_list版本的重载的构造函数。因此，你最好把你的构造函数设计为不管用户是使用圆括号还是使用花括号进行初始化都不会有什么影响。
+std::initializer_list重载不会和其他重载函数比较，它直接盖过了其它重载函数，它重载函数几乎不会被考虑。所以如果你要加入std::initializer_list构造函数，请三思而后行。
+```cpp
+class Widget { 
+public:  
+    Widget(int i, bool b);      //同上
+    Widget(int i, double d);    //同上
+    Widget(std::initializer_list<long double> il);      //新添加的
+    …
+};
+
+Widget w1(10, true);    //使用圆括号初始化，同之前一样
+                        //调用第一个构造函数
+
+Widget w2{10, true};    //使用花括号初始化，但是现在
+                        //调用带std::initializer_list的构造函数
+                        //(10 和 true 转化为long double)
+
+Widget w3(10, 5.0);     //使用圆括号初始化，同之前一样
+                        //调用第二个构造函数 
+
+Widget w4{10, 5.0};     //使用花括号初始化，但是现在
+                        //调用带std::initializer_list的构造函数
+                        //(10 和 5.0 转化为long double)
+
+```
+在模板类选择使用圆括号初始化或使用花括号初始化创建对象是一个挑战。需要明确使用圆括号还是花括号。标准库函数std::make_unique和std::make_shared（参见Item21）面对的问题。它们的解决方案是使用圆括号，并被记录在文档中作为接口的一部分。
 
 
 **Effective Modern C++ 8**
+NULL就是0，是个宏。`#define NULL 0`
+nullptr不是指针类型。，nullptr的类型为std::nullptr_t，因为 std::nullptr_t 可以隐式转换为任何类型的指针。
+- 优先使用nullptr而不是0或者null。nullptr明确表明是一个空指针。
+nullptr 可以使得代码逻辑更加清晰，可见下面：
+```cpp
+auto result = findRecord( /* arguments */);
+if(result == 0){
+	...
+}
+//如果你不能轻松地的看出 findRecord 返回的是什么， 要知道 result 是一个指针还是整数类
+//型并不是很简单的。 毕竟， 0 （ 被用来测试 result 的） 即可以当做指针也可以当做整数类型。 
+auto result = findRecord( /* arguments */);
+if(reuslt == nullptr){//明显就没有歧义了： result 一定是个指针类型
+	...
+}
+```
+nullptr很适合用在模板中，用于类型推导。
+```cpp
+int f1(std::shared_ptr<Widget> spw); // 只有对应的
+double f2(std::unique_ptr<Widget> upw); // 互斥量被锁定
+bool f3(Widget* pw); // 才会调用这些函数
+
+template<typename FuncType, typename MuxType, typename PtrType>
+decltype(auto) lockAndCall(FuncType func, MuxType& mutex, PtrType ptr)
+{
+	MuxGuard g(mutex);
+	return func(ptr);
+}
+auto result1 = lockAndCall(f1, f1m, 0); // 错误, 0被推导为int，与f1函数要求的入参不同。
+auto result2 = lockAndCall(f2, f2m, NULL); // 错误，NULL被推导为整型，与f2函数要求的入参不同。
+auto result3 = lockAndCall(f3, f2m, nullptr); // 正确
+```
+- 避免整数类型和指针类型之间的重载。如果一个函数有整数和指针的重载，考虑使用nullptr而不是NULL来调用。
+```cpp
+void f(int); // 函数f的三个重载
+void f(bool);
+void f(void*);
+f(0); // 调用 f(int)， 而非f(void*)
+f(NULL); // 可能无法编译， 但是调用f(int),不可能调用 f(void*)
+```
 
 
 **Effective Modern C++ 9**
+- 优先使用声明别名而不是typedef
+```cpp
+//c++ 98的方式
+typedef std::unique_ptr<std::unordered_map<std::string, std::string>> UPtrMapSS;
+//C++ 11的方式
+using UptrMapSS = std::unique_ptr<std::unordered_map<std::string, std::string>>;
 
+// FP等价于一个函数指针， 这个函数的参数是一个int类型和std::string常量类型， 没有返回值
+typedef void (*FP)(int, const std::string&); // typedef
+using FP = void (*)(int, const std::string&); // 声明别名，这个方式可读性好。
+```
+- typedef不支持模板化，但是别名声明支持。
+```cpp
+//使用using很简单
+template<typname T> // MyAllocList<T>
+using MyAllocList = std::list<T, MyAlloc<T>>; // 等同于// std::list<T, MyAlloc<T>>
+MyAllocList<Widget> lw; // 终端代码
+
+//使用typedef就比较繁琐了
+template<typename T> // MyAllocList<T>::type
+struct MyAllocList { // 等同于
+	typedef std::list<T, MyAlloc<T>> type; // std::list<T,MyAlloc<T>>
+}; 
+MyAllocList<Widget>::type lw; // 终端代码
+
+//这里MyAllocList<T>::type使用了一个类型，这个类型依赖于模板参数T。因此MyAllocList<T>::type是一个依赖类型（dependent type)
+//在依赖类型的名称之前必须冠以 typename 
+template<typename T>
+class Widget {                              //Widget<T>含有一个MyAllocLIst<T>对象作为数据成员
+private:                                    
+    typename MyAllocList<T>::type list;     
+    …
+}; 
+
+//如果使用using则简单一些。
+//当编译器处理Widget模板时遇到MyAllocList<T>（使用模板别名声明的版本），它们知道MyAllocList<T>是一个类型名，
+//因为MyAllocList是一个别名模板：它一定是一个类型名。因此MyAllocList<T>就是一个非依赖类型（non-dependent type），
+//就不需要也不允许使用typename修饰符。
+template<typename T>
+class Widget {
+	private:
+	MyAllocList<T> list; // 没有typename，因为编译器很容易看出这就是类型名称，而且是没有::type
+};
+
+//当编译器在Widget的模板中看到MyAllocList<T>::type（使用typedef的版本），
+//它不能确定那是一个类型的名称。因为可能存在一个MyAllocList的它们没见到的特化版本，
+//那个版本的MyAllocList<T>::type指代了一种不是类型的东西。
+//MyAllocList<T>::type 是否指的是一个类型忠实地依赖于传入的 T 是什么， 这也是编译器坚持要求你在类型前面冠以 typename 的原因
+class Wine { … };
+
+template<>                          //当T是Wine
+class MyAllocList<Wine> {           //特化MyAllocList
+private:  
+    enum class WineType             //参见Item10了解  
+    { White, Red, Rose };           //"enum class"
+
+    WineType type;                  //在这个类中，type是
+    …                               //一个数据成员！
+};
+```
+*依赖类型*，是指一个类型的确定依赖于另外一个类型。依赖类型的概念出现在模板元编程中。在依赖类型的名称之前必须冠以 typename 。
+- 模板别名避免了::type后缀，在模板中使用typedef还经常要求使用typename前缀。
+- C++14为C++11中的类型特征转换提供了模板别名。使用type traits中的工具可以实现类型转换
+```cpp
+std::remove_const<T>::type          //C++11: const T → T 
+std::remove_const_t<T>              //C++14 等价形式
+
+std::remove_reference<T>::type      //C++11: T&/T&& → T 
+std::remove_reference_t<T>          //C++14 等价形式
+
+std::add_lvalue_reference<T>::type  //C++11: T → T& 
+std::add_lvalue_reference_t<T>      //C++14 等价形式
+
+```
 
 **Effective Modern C++ 10**
+优先考虑限域enum而非未限域enum
+- C++98的enum即非限域enum。
+```cpp
+// 未限域enum
+enum Color { black, white, red };   //black, white, red在Color所在的作用域
+auto white = false;                 //错误! white早已在这个作用域中声明
 
+// 限域enum，限域enum是通过“enum class”声明
+enum class Color { black, white, red }; //black, white, red限制在Color域内
+auto white = false;                     //没问题，域内没有其他“white”
+Color c = white;                        //错误，域中没有枚举名叫white
+Color c = Color::white;                 //没问题
+auto c = Color::white;                  //也没问题（也符合Item5的建议）
+```
+- 限域enum的枚举名仅在enum内可见。要转换为其它类型只能使用cast。未限域enum则会被隐式转换成整型或浮点数。
+```cpp
+enum class Color { black, white, red }; //Color现在是限域enum
+Color c = Color::red;                   //和之前一样，只是了一个域修饰符
+// if (c < 14.5) {                         //错误！不能比较Color和double
+//     auto factors =  primeFactors(c);    //错误！不能向参数为std::size_t的函数传递Color参数
+// }
+if (static_cast<double>(c) < 14.5) {    //奇怪的代码，但是有效
+    auto factors = primeFactors(static_cast<std::size_t>(c)); //有问题，但是能通过编译
+}
+```
+- 非限域/限域enum都支持底层类型说明语法，限域enum底层类型默认是int。非限域enum没有默认底层类型。
+- 限域enum总是可以前置声明。非限域enum仅当指定它们的底层类型时才能前置。
+```cpp
+enum class Status;                  //底层类型是int
+enum class Status: std::uint32_t;   //Status的底层类型是std::uint32_t（需要包含 <cstdint>）
+enum Color: std::uint8_t;   //非限域enum前向声明底层类型为std::uint8_t
+
+```
+- 存在一些情况，更适合使用非限域enum。如下,非限域版本相对简洁。
+```cpp
+using UserInfo =                //类型别名，参见Item9
+    std::tuple<std::string,     //名字
+               std::string,     //email地址
+               std::size_t> ;   //声望
+
+enum UserInfoFields { uiName, uiEmail, uiReputation };
+UserInfo uInfo;                         //同之前一样
+auto val = std::get<uiEmail>(uInfo);    //啊，获取用户email字段的值
+
+enum class UserInfoFields { uiName, uiEmail, uiReputation };
+UserInfo uInfo;                         //同之前一样
+auto val = std::get<static_cast<std::size_t>(UserInfoFields::uiEmail)>(uInfo);
+```
 
 **Effective Modern C++ 13**
-
+- 优先考虑const_iterator而非iterator
+STL const_iterator等价于指向常量的指针（pointer-to-const）。它们都指向不能被修改的值。标准实践是能加上const就加上，这也指示我们需要一个迭代器时只要没必要修改迭代器指向的值，就应当使用const_iterator。
+```cpp
+std::vector<int> values;                                //和之前一样
+auto it = std::find(values.cbegin(), values.cend(), 1983);//使用cend，cbegin。返回const_iterator。
+values.insert(it, 1998);
+```
+- 在最大程度通用的代码中，优先考虑非成员函数版本的begin，end，rbegin等，而非同名成员函数。（这个不太重要）
 
 **Effective Modern C++ 15**
+constexpr使得在编译期进行复杂计算变得更加方便。
+- constexpr对象是const，它被在编译期可知的值初始化
+简而言之，所有constexpr对象都是const，但不是所有const对象都是constexpr。如果你想编译器保证一个变量有一个值，这个值可以放到那些需要编译期常量（compile-time constants）的上下文的地方，你需要的是constexpr而不是const。
+```cpp
+int sz;                             //non-constexpr变量
+constexpr auto arraySize1 = sz;     //错误！sz的值在编译期不可知
+std::array<int, sz> data1;          //错误！一样的问题
+constexpr auto arraySize2 = 10;     //没问题，10是编译期可知常量
+std::array<int, arraySize2> data2;  //没问题, arraySize2是constexpr
+//注意const不提供constexpr所能保证之事，因为const对象不需要在编译期初始化它的值。
+int sz;                            //和之前一样
+const auto arraySize = sz;         //没问题，arraySize是sz的const复制
+std::array<int, arraySize> data;   //错误，arraySize值在编译期不可知
 
+```
+- 当传递编译期可知的值时，constexpr函数可以产出编译期可知的结果。当传递运行期可知的值，constexpr则在运行时产生结果。
+```cpp
+constexpr                                   //pow是绝不抛异常的constexpr函数
+int pow(int base, int exp) noexcept         //C++ 14函数定义可以写多行，C++ 11只能写一行。
+{
+    auto result = 1;
+    for (int i = 0; i < exp; ++i) result *= base;
+    return result;
+}
+constexpr auto numConds = 5;                //（上面例子中）条件的个数
+std::array<int, pow(3, numConds)> results;  //结果有3^numConds个元素,编译期计算
 
-**Effective Modern C++ 16**
+auto base = readFromDB("base");     //运行时获取这些值
+auto exp = readFromDB("exponent"); 
+auto baseToExp = pow(base, exp);    //运行时调用pow函数
+```
 
+- constexpr对象和函数可以使用的范围比non-constexpr对象和函数要大
+本条款的建议是尽可能的使用constexpr，现在我希望大家已经明白缘由：constexpr对象和constexpr函数可以使用的范围比non-constexpr对象和函数大得多。使用constexpr关键字可以最大化你的对象和函数可以使用的场景。
+- constexpr是对象和函数接口的一部分
+还有个重要的需要注意的是constexpr是对象和函数接口的一部分。加上constexpr相当于宣称“我能被用在C++要求常量表达式的地方”。如果你声明一个对象或者函数是constexpr，客户端程序员就可能会在那些场景中使用它。如果你后面认为使用constexpr是一个错误并想移除它，你可能造成大量客户端代码不能编译。“尽可能”的使用constexpr表示你需要长期坚持对某个对象或者函数施加这种限制。
 
-*HERE，搞完这些就直接从Effective Modern C++ 23继续*
 
 ##### 高效率相关
 
@@ -1630,6 +1892,42 @@ int main()
     for (int i{5}; i != 8; ++i) { std::cout << i << "! = " << factorial(i) << ";  "; }
 }
 ```
+
+#### 并发编程
+
+**Effective Modern C++ 16**
+让const成员函数线程安全
+一定要确保const成员函数线程安全，除非你确定它们永远不会在并发上下文（concurrent context）中使用。
+使用std::atomic变量可能比互斥量提供更好的性能，但是它只适合操作单个变量或内存位置。
+
+**Effective Modern C++ 35**
+优先考虑基于任务的编程而非基于线程的编程
+- std::thread API不能直接访问异步执行的结果，如果执行函数有异常抛出，代码会终止执行。
+- 基于线程(std::thread)的编程方式需要手动的线程耗尽、资源超额、负责均衡、平台适配性管理。
+- 通过带有默认启动策略的std::async进行基于任务的编程方式会解决大部分问题。
+
+**Effective Modern C++ 36**
+如果有异步的必要请指定std::launch::async
+- std::async的默认启动策略是异步和同步执行兼有的。
+- 这个灵活性导致访问thread_locals的不确定性，隐含了任务可能不会被执行的意思，会影响调用基于超时的wait的程序逻辑。
+- 如果异步执行任务非常关键，则指定std::launch::async。
+
+**Effective Modern C++ 37**
+- 在所有路径上保证thread最终是不可结合的。
+- 析构时join会导致难以调试的表现异常问题。
+- 析构时detach会导致难以调试的未定义行为。
+-  声明类数据成员时，最后声明std::thread对象。
+*HERE 考虑为本节写个RAII管理thread结合性的例子*
+
+**Effective Modern C++ 38**
+
+**Effective Modern C++ 39**
+
+**Effective Modern C++ 40**
+
+*HERE，搞完这些就直接从Effective Modern C++ 23继续*
+
+
 
 *在网上找找Effecti C++和More Effective C++的哪些条款已经不适用现代C++语法了。更新一下笔记*
 *在面向对象部分的信息整理完成后，再跟CGL对应章节核对一遍*

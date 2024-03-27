@@ -50,6 +50,10 @@ namespace effective {
     std::string Draw(Color color) const;
     // boardcast the address to the habitant.
     std::string BoardcastAddress() const;
+    /**
+     * @brief Send default address in asynchronization mode.
+     */
+    std::string BoardcastAddressAsync() const;
 
   protected:
     //> EffectiveC++ 22

@@ -17,4 +17,5 @@ TEST_CASE("House") {
   CHECK(one_house->GetAddress() == "PeopleRoad-No.99");
   CHECK(one_house->BoardcastAddress() == "This from home begin send address Tick begin My House address is : PeopleRoad-No.99My House address is : PeopleRoad-No.99My House address is : PeopleRoad-No.99end.");
   CHECK(one_house->AddWater(Water()) == 10);
+  CHECK(one_house->BoardcastAddressAsync() == "My home address is : empty.");
 }

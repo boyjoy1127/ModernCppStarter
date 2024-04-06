@@ -3648,6 +3648,220 @@ void Demo() {
 
 ### 函数式编程
 lamdba编程。
+lambda语法最主要的地方在*捕获*和*形参列表*。
+```cpp
+[]：默认不捕获任何变量；
+[=]：默认以值捕获所有变量；
+[&]：默认以引用捕获所有变量；
+[x]：仅以值捕获x，其它变量不捕获；
+[&x]：仅以引用捕获x，其它变量不捕获；
+[=, &x]：默认以值捕获所有变量，但是x是例外，通过引用捕获；
+[&, x]：默认以引用捕获所有变量，但是x是例外，通过值捕获；
+[this]：通过引用捕获当前对象（其实是复制指针）；
+[*this]：通过传值方式捕获当前对象；
+```
+*lambda表达式（lambda expression）*就是一个表达式。下面是部分源代码。在
+```cpp
+std::find_if(container.begin(), container.end(), [](int val){ return 0 < val && val < 10; });
+```
+中，代码的高亮部分就是lambda。
+*闭包（enclosure）*是lambda创建的运行时对象。依赖捕获模式，闭包持有被捕获数据的副本或者引用。在上面的std::find_if调用中，闭包是作为第三个实参在运行时传递给std::find_if的对象。
+*闭包类（closure class）*是从中实例化闭包的类。每个lambda都会使编译器生成唯一的闭包类。lambda中的语句成为其闭包类的成员函数中的可执行指令。
+非正式的讲，模糊lambda，闭包和闭包类之间的界限是可以接受的。但是，在随后的Item中，区分什么存在于编译期（lambdas 和闭包类），什么存在于运行时（闭包）以及它们之间的相互关系是重要的。
+
+**Effective Modern C++ 31**
+避免使用默认捕获模式。
+从长期来看，显式列出lambda依赖的局部变量和形参，是更加符合软件工程规范的做法。
+捕获只能应用于lambda被创建时所在作用域里的non-static局部变量（包括形参）。按值捕获还可以捕获this指针。
+```cpp
+class Widget {
+public:
+    …                       //构造函数等
+    void addFilter() const; //向filters添加条目
+private:
+    int divisor;            //在Widget的过滤器使用
+};
+//正确，这个就是按值捕获，捕获了this指针。
+void Widget::addFilter() const {
+    filters.emplace_back(
+        [=](int value) { return value % divisor == 0; }
+    );
+}
+//正确，这个好处是，即使Widget对象消失，divisorCopy依然有效。因为不再依赖this.divisor。
+void Widget::addFilter() const {
+    auto divisorCopy = divisor;                 //拷贝数据成员
+
+    filters.emplace_back(
+        [divisorCopy](int value)                //捕获副本
+        { return value % divisorCopy == 0; }	//使用副本
+    );
+}
+
+//错误
+void Widget::addFilter() const {
+    filters.emplace_back(
+        [divisor](int value)                //错误！没有名为divisor局部变量可捕获
+        { return value % divisor == 0; }
+    );
+}
+void Widget::addFilter() const {
+    filters.emplace_back(                               //错误！
+        [](int value) { return value % divisor == 0; }  //divisor不可用
+    ); 
+} 
+```
+解释上面内容。隐式使用了一个原始指针：this。每一个non-static成员函数都有一个this指针，每次你使用一个类内的数据成员时都会使用到这个指针。例如，在任何Widget成员函数中，编译器会在内部将divisor替换成this->divisor。在默认按值捕获的Widget::addFilter版本中，真正被捕获的是Widget的this指针，而不是divisor。
+这里的按值捕获，其实并没有捕获到任何东西，因为捕获只能捕获non-static。而针对static类型的变量则是引用(即直接使用)。
+```cpp
+void addDivisorFilter() {
+    static auto calc1 = computeSomeValue1();    //现在是static
+    static auto calc2 = computeSomeValue2();    //现在是static
+    static auto divisor =                       //现在是static
+    computeDivisor(calc1, calc2);
+
+    filters.emplace_back(
+        [=](int value)                          //什么也没捕获到！
+        { return value % divisor == 0; }        //引用上面的static
+    );
+
+    ++divisor;                                  //调整divisor
+}
+```
+在C++14中，一个更好的捕获成员变量的方式时使用通用的lambda捕获：
+```cpp
+void Widget::addFilter() const {
+    filters.emplace_back(                   //C++14：
+        [divisor = divisor](int value)      //拷贝divisor到闭包
+        { return value % divisor == 0; }	//使用这个副本
+    );
+}
+```
+请记住：
+- 默认的按引用捕获可能会导致悬空引用。语法是:[&]
+- 默认的按值捕获对于悬空指针很敏感（尤其是this指针），并且它会误导人产生lambda是独立的想法.语法是:[=]
+
+**Effective Modern C++ 32**
+使用初始化捕获来移动对象到闭包中。
+C++14语法如下
+```cpp
+class Widget {                          //一些有用的类型
+public:
+    bool isValidated() const;
+    bool isProcessed() const;
+    bool isArchived() const;
+};
+auto pw = std::make_unique<Widget>();   //创建Widget；使用std::make_unique
+//使用std::move(pw)初始化闭包数据成员,“pw = std::move(pw)”的意思是“在闭包中创建一个数据成员pw。
+//并使用将std::move应用于局部变量pw的结果来初始化该数据成员”。std::move(pw)的作用域和lambda定义所在的作用域相同。
+auto func = [pw = std::move(pw)] { return pw->isValidated()&& pw->isArchived(); };
+auto func = [pw = std::make_unique<Widget>()]   //使用调用make_unique得到的结果
+            { return pw->isValidated()          //初始化闭包数据成员
+                     && pw->isArchived(); };
+```
+C++ 11语法如下
+如lambda表达式一样，std::bind产生函数对象。我将由std::bind返回的函数对象称为bind对象（bind objects）。std::bind的第一个实参是可调用对象，后续实参表示要传递给该对象的值。
+一个bind对象包含了传递给std::bind的所有实参的副本。对于每个左值实参，bind对象中的对应对象都是复制构造的。对于每个右值，它都是移动构造的。在此示例中，第二个实参是一个右值（std::move的结果，请参见Item23），因此将data移动构造到绑定对象中。这种移动构造是模仿移动捕获的关键，因为将右值移动到bind对象是我们解决无法将右值移动到C++11闭包中的方法。
+```cpp
+//C++ 14语法
+std::vector<double> data;               //要移动进闭包的对象
+…                                       //填充data
+auto func = [data = std::move(data)]    //C++14初始化捕获
+            { /*使用data*/ };
+//C++ 11语法
+std::vector<double> data;               //同上
+…                                       //同上
+auto func =
+    std::bind(                              //C++11模拟初始化捕获
+        [](const std::vector<double>& data) //译者注：本行高亮
+        { /*使用data*/ },
+        std::move(data)                     //译者注：本行高亮
+    );
+//默认情况下，从lambda生成的闭包类中的operator()成员函数为const的。这具有在lambda主体内把闭包中的所有数据成员渲染为const的效果。但是，bind对象内部的移动构造的data副本不是const的，因此，为了防止在lambda内修改该data副本，lambda的形参应声明为reference-to-const。 如果将lambda声明为mutable，则闭包类中的operator()将不会声明为const，并且在lambda的形参声明中省略const也是合适的：
+auto func = std::bind(                          //C++11对mutable lambda
+        [](std::vector<double>& data) mutable	//初始化捕获的模拟
+        { /*使用data*/ },
+        std::move(data)
+    );
+```
+请记住：
+- 使用C++14的初始化捕获将对象移动到闭包中。
+- 在C++11中，通过手写类或std::bind的方式来模拟初始化捕获。
+
+**Effective Modern C++ 34**
+考虑lambda而非std::bind
+```cpp
+//一个时间点的类型定义（语法见条款9）
+using Time = std::chrono::steady_clock::time_point;
+//“enum class”见条款10
+enum class Sound { Beep, Siren, Whistle };
+//时间段的类型定义
+using Duration = std::chrono::steady_clock::duration;
+//在时间t，使用s声音响铃时长d
+void setAlarm(Time t, Sound s, Duration d);
+
+//setSoundL（“L”指代“lambda”）是个函数对象，允许指定一小时后响30秒的警报器的声音
+auto setSoundL = [](Sound s) {
+        //使std::chrono部件在不指定限定的情况下可用
+        using namespace std::chrono;
+	    //一小时后响30秒的闹钟
+        setAlarm(steady_clock::now() + hours(1), s, seconds(30));
+    };
+//错误使用bind，steady_clock::now() + 1h是在定义的时候就计算出来的值，而我们希望等到调用的时候再计算。
+auto setSoundB = std::bind(setAlarm, steady_clock::now() + 1h, _1, 30s);
+//正确使用bind，C++14
+auto setSoundB = std::bind(setAlarm, std::bind(std::plus<>(), std::bind(steady_clock::now), 1h), _1, 30s);
+//C++11
+auto setSoundB = std::bind(setAlarm, std::bind(std::plus<steady_clock::time_point>(), std::bind(steady_clock::now), hours(1)), _1, seconds(30));
+```
+当setAlarm出现重载函数时，std::bind的使用更加复杂。同时因为使用了函数指针，使得函数无法被内联而降低了效率。
+```cpp
+void setAlarm(Time t, Sound s, Duration d);
+void setAlarm(Time t, Sound s, Duration d, Volume v);
+using SetAlarm3ParamType = void(*)(Time t, Sound s, Duration d);
+//std::bind需要指定函数指针，才能知道绑定哪个函数。
+auto setSoundB = std::bind(static_cast<SetAlarm3ParamType>(setAlarm), std::bind(std::plus<>(), steady_clock::now(), 1h), _1, 30s);
+
+```
+std::bind总是拷贝它的实参，但是调用者可以使用引用来存储实参，这要通过应用std::ref到实参上实现。auto compressRateB = std::bind(compress, std::ref(w), _1);的结果就是compressRateB行为像是持有w的引用而非副本。，但唯一知道的方法是记住std::bind的工作方式；在对std::bind的调用中没有任何迹象。
+然而在std::bind方法中，其中w是通过值还是通过引用捕获是隐式的。
+然而在lambda方法中，其中w是通过值还是通过引用捕获是显式的。
+
+与lambda相比，使用std::bind进行编码的代码可读性较低，表达能力较低，并且效率可能较低。 在C++14中，没有std::bind的合理用例。 但是，在C++11中，可以在两个受约束的情况下证明使用std::bind是合理的：
+移动捕获。C++11的lambda不提供移动捕获，但是可以通过结合lambda和std::bind来模拟。 有关详细信息，请参阅Item32，该条款还解释了在C++14中，lambda对初始化捕获的支持消除了这个模拟的需求。
+多态函数对象。因为bind对象上的函数调用运算符使用完美转发，所以它可以接受任何类型的实参（以Item30中描述的完美转发的限制为界限）。当你要绑定带有模板化函数调用运算符的对象时，此功能很有用。 例如这个类，
+```cpp
+class PolyWidget {
+public:
+    template<typename T>
+    void operator()(const T& param);
+    …
+};
+PolyWidget pw;
+//C++ 11 ,boundPW可以接受任意类型的对象了
+auto boundPW = std::bind(pw, _1);
+
+//C++ 14, 可以通过带有auto形参的lambda轻松实现
+auto boundPW = [pw](const auto& param)  //C++14 
+               { pw(param); };
+
+```
+请记住：
+与使用std::bind相比，lambda更易读，更具表达力并且可能更高效。
+只有在C++11中，std::bind可能对实现移动捕获或绑定带有模板化函数调用运算符的对象时会很有用。
+
+**Effective Modern C++ 33**
+对于std::forward的auto&&形参使用decltype。
+泛型lambda（generic lambdas）是C++14中最值得期待的特性之一——因为在lambda的形参中可以使用auto关键字。这个特性的实现是非常直截了当的：即在闭包类中的operator()函数是一个函数模版。
+```cpp
+//支持函数模板
+auto f = [](auto x){ return func(normalize(x));};
+//支持函数模板内部使用完美转发的情况，需要使用decltype
+auto f = [](auto&& param) { return func(normalize(std::forward<decltype(param)>(param)));};
+//支持数量可变形参，且函数模板内部使用完美转发的情况
+auto f = [](auto&&... param) { return func(normalize(std::forward<decltype(param)>(param)...));};
+```
+请记住：
+对auto&&形参使用decltype以std::forward它们。
 
 ### 面向过程编程，函数式编程，模板元编程，面向对象编程，泛型编程，宏编程。
 C++中分别在什么时候使用这三种语法？
@@ -3655,11 +3869,11 @@ C++中分别在什么时候使用这三种语法？
 宏编程，C中比较普遍。它跟C++的模板元编程的作用相当。都是在运行期之前进行计算以生成代码。
 编译期：
 模板元编程，主要是要将运行期的计算放到编译期来进行，此外它是实现STL的基石。如果想对面向对象进一步抽象就需要模板编程。
+泛型编程，是将类型参数化，STL的使用就是泛型编程。STL的实现依赖于模板元编程。
 运行期：
 面向过程编程，例如C语言。适合做一些底层业务，驱动，嵌入式领域。跟底层打交道。不适合现实世界业务领域(比如：售票系统)。
 面向对象编程，适合解决领域业务问题，比如外包。它可以将现实世界的各种元素抽象成为类。
-泛型编程，是将类型参数化，STL的使用就是泛型编程。STL的实现依赖于模板元编程。
-函数式编程，它更适合做科学计算，大数据中的流式处理。不适合将现实世界的领域问题(比如：售票系统)映射到函数式编程的范式中。
+函数式编程，它更适合做科学计算，大数据中的流式处理。不适合将现实世界的领域问题(比如：售票系统)映射到函数式编程的范式中。函数式编程以lambda语法为代表，lambda的底层实现是函数对象。在类中，可以重载函数调用运算符()，此时类的对象可以将具有类似函数的行为，我们称这些对象为函数对象（Function Object）或者仿函数（Functor）。
 
 ### STL编程(模板编程)语法
 *进阶需要阅读《Effective STL》，已经下载到文档中了。*
@@ -3677,9 +3891,6 @@ STL 提供了六大组件，彼此组合套用协同工作。这六大组件分�
 #### 代码示例
 C++ STL容器用法示例大全
 https://blog.csdn.net/lady_killer9/article/details/81175682
-
-
-
 
 
 ### 其他

@@ -15,6 +15,39 @@ Effective Modern C++：11,17,14,12,18,19,20,21,22.
 ### 面向对象语法
 (按照这个顺序阅读添加：Effective C++(2,3,4,5,6)、More EffectiveC++(5,6,7)、Effective Modern C++(3)、CGL、)
 
+#### 基本概念
+**声明与定义**
+头文件一般包含类的定义、extern变量的声明和函数的声明。
+什么是声明？
+为了允许把程序拆分成多个逻辑部分来编写，C++语言支持单独编译（separate compilation）机制，该机制允许将程序分割为若干个文件，每个文件可被独立分离式编译。
+为了支持分离式编译，C++语言将声明和定义区分开来。
+变量的声明有两种情况： 一种是需要建立存储空间的。例如：int a 在声明的时候就已经建立了存储空间。 另一种是不需要建立存储空间的。
+声明是告诉编译器一些信息，以协助编译器进行语法分析，避免编译器报错。而定义是告诉编译器生成一些代码，并且这些代码将由连接器使用。即：声明是给编译器用的，定义是给连接器用的。
+概念：
+1，声明（declaration）
+用于向程序表明变量的类型和名字，它只是说明变量定义在程序的其他地方，在其他地方已经完成了定义，这里只是说明有这么个变量存在。
+2，定义（definition）
+告诉编译器建立变量并分配存储空间，并且给变量一个指定的初始值。
+
+在c++中，变量和函数的声明和定义是很不一样的。
+1、声明和定义都规定了变量的名字和类型，但是定义会申请内存空间，也可能为变量赋一个初始值。
+2、同一个变量声明可以有多处，但定义只能有一处
+```cpp
+extern int i; //声明i而非定义i
+int j;//声明并定义j
+```
+extern关键字就是告诉编译器，这个变量i定义在其他文件中
+3、任何显式初始化的声明也会成为定义
+`extern int i = 3;//定义，非声明`
+4、函数声明与定义区别在于后者多个函数体。
+
+定义和声明是容易混淆的概念，但通过上面的类比说明，可以看出： 
+（1）“定义”和“声明”的本质区别是声明可以出现多次，而定义只能出现一次； 
+（2）把声明的东西放在头文件，把定义的东西放在源文件（.c或者.cpp文件）； 
+（3）类型的定义应该放在头文件，因为类型不具有外部连接性，不同源文件拥有相同的类型定义不会报编译错误，但头文件不能重复包含。
+
+
+
 #### 类的设计原则
 **Effective C++ 19**
 **提纲挈领**
@@ -955,7 +988,105 @@ operator delete应该在收到null指针时不做任何事。Class专属版本�
 1. 当你写一个placement operator new, 请确定也写出了对应的placement operator delete。如果没有这样做，你的程序可能会发生隐微而时断时续的内存泄露
 2. 当你声明placement new和placement delete， 请确定不要无意识地遮掩了他们的正常版本。
 
+##### 微调(Effective Modern C++)
+**Effective Modern C++ 41**
+对于移动成本低且总是被拷贝的可拷贝形参，考虑按值传递。
+这句话明确了，什么时候考虑使用按值传递。典型场景要求为：
+1. 形参的移动成本低。
+2. 形参支持拷贝。
+3. 形参在函数内部处理逻辑中总是被使用到。
+4. 当需要实现多个函数，这个多函数做的事情相同，只是参数不同的时候。比如：接收左值引用的addName和接收右值引用的addName；或者用模板实现的addName。
+这种情况下，可以使用一个按值传递的addName()来替代上述两种复杂的实现。
+```cpp
+class Widget {                                  //方法1：对左值和右值重载
+public:
+    void addName(const std::string& newName)
+    { names.push_back(newName); } // rvalues
+    void addName(std::string&& newName)
+    { names.push_back(std::move(newName)); }
+    …
+private:
+    std::vector<std::string> names;
+};
 
+class Widget {                                  //方法2：使用通用引用
+public:
+    template<typename T>
+    void addName(T&& newName)
+    { names.push_back(std::forward<T>(newName)); }
+    …
+};
+
+class Widget {                                  //方法3：传值
+public:
+    void addName(std::string newName)
+    { names.push_back(std::move(newName)); }
+    …
+};
+Widget w;
+std::string name("Bart");
+//使用左值调用addName，第一处调用addName（当name被传递时），形参newName是使用左值被初始化。newName因此是被拷贝构造，就像在C++98中一样。
+w.addName(name);
+//使用右值调用addName（见下）。第二处调用，newName使用std::string对象被初始化，
+//这个std::string对象是调用std::string的operator+（即append操作）得到的结果。这个对象是一个右值，因此newName是被移动构造的。
+w.addName(name + "Jenne"); 
+```
+
+重载：无论传递左值还是传递右值，调用都会绑定到一个叫newName的引用上。从拷贝和移动操作方面看，这个过程零开销。左值重载中，newName拷贝到Widget::names中，右值重载中，移动进去。开销总结：左值一次拷贝，右值一次移动。
+
+使用通用引用：同重载一样，调用也绑定到addName这个引用上，没有开销。由于使用了std::forward，左值std::string实参会拷贝到Widget::names，右值std::string实参移动进去。对std::string实参来说，开销同重载方式一样：左值一次拷贝，右值一次移动。
+
+按值传递：无论传递左值还是右值，都必须构造newName形参。如果传递的是左值，需要拷贝的开销，如果传递的是右值，需要移动的开销。在函数的实现中，newName总是采用移动的方式到Widget::names。开销总结：左值实参，一次拷贝一次移动，右值实参两次移动。对比按引用传递的方法，对于左值或者右值，均多出一次移动操作。
+
+C++11没有从根本上改变C++98对于按值传递的智慧。通常，按值传递仍然会带来你希望避免的性能下降，而且按值传递会导致切片问题。C++11中新的功能是区分了左值和右值实参。利用对于可拷贝类型的右值的移动语义，需要重载或者通用引用，尽管两者都有其缺陷。对于特殊的场景，可拷贝且移动开销小的类型，传递给总是会拷贝他们的一个函数，并且切片也不需要考虑，这时，按值传递就提供了一种简单的实现方式，效率接近传递引用的函数，但是避免了传引用方案的缺点。
+
+**Effective Modern C++ 42**
+STL容器函数，考虑使用置入代替插入。置入函数有：emplace,emplace_back,emplace_front等。插入函数有：push_back，push_front，insert等。
+使得置入（emplacement）函数功能优于插入函数的原因是它们有灵活的接口。插入函数接受对象去插入，而置入函数接受对象的构造函数接受的实参去插入。这种差异允许置入函数避免插入函数所必需的临时对象的创建和销毁。
+1. 原则上，置入函数有时会比插入函数高效，并且不会更差。但是，实际上有时候插入比置入快，这个最好使用benchmark测试一下。
+2. 实际上，当以下条件满足时，置入函数更快：（1）值被构造到容器中，而不是直接赋值；（2）传入的类型与容器的元素类型不一致；（3）容器不拒绝已经存在的重复值。
+```cpp
+//(1) 值是通过构造函数添加到容器，而不是直接赋值。
+vs.emplace_back("xyzzy");           //构造函数，因为是在容器新位置添加元素，所以用构造函数，直接用“xyzzy”在vs内构造std::string
+vs.emplace(vs.begin(), "xyzzy");    //赋值函数，因为是在容器已有位置改变元素，所以使用赋值函数，则必然有临时对象产生，置入函数就没有优势了。
+//(2) 传递的实参类型与容器的初始化类型不同。当传递的实参不是容器保存的类型时，接口不需要创建和销毁临时对象。
+vs.emplace_back("xyzzy");  //"xyzzy"是const char*，会在容器添加新元素的时候，使用"xyzzy"作为新元素的参数，对新元素初始化。
+vs.push_back("xyzzy");//"xyzzy"是const char*会先生成，std::string临时对象，然后再添加到容器。
+//(3) 容器不拒绝已经存在的重复值。
+//这意味着容器要么允许添加重复值，要么你添加的元素大部分都是不重复的。这样要求的原因是为了判断一个元素是否已经存在于容器中，置入实现通常会创建一个具有新值的节点，
+//以便可以将该节点的值与现有容器中节点的值进行比较。如果要添加的值不在容器中，则链接该节点。然后，如果值已经存在，置入操作取消，创建的节点被销毁，
+//意味着构造和析构时的开销被浪费了。这样的节点更多的是为置入函数而创建，相比起为插入函数来说。
+vs.emplace_back("xyzzy");              //在容器末尾构造新值；不是传递的容器中元
+                                       //素的类型；没有使用拒绝重复项的容器
+vs.emplace_back(50, 'x');              //同上
+
+```
+3. 置入函数可能执行插入函数拒绝的类型转换。
+```cpp
+regexes.emplace_back(nullptr);           //可编译。直接初始化允许使用接受指针的
+                                         //std::regex的explicit构造函数
+regexes.push_back(nullptr);              //错误！拷贝初始化不允许用那个构造函数
+```
+补充. 置入函数有时候不如插入函数安全。
+```cpp
+ptrs.push_back({new Widget, killWidget});
+//用emplace_back应该可以避免std::shared_ptr临时对象的创建，但是在这个场景下，临时对象值得被创建。考虑如下可能的时间序列：
+//在上述的调用中，一个std::shared_ptr<Widget>的临时对象被创建来持有“new Widget”返回的原始指针。称这个对象为temp。
+//push_back通过引用接受temp。在存储temp的副本的list节点的内存分配过程中，内存溢出异常被抛出。
+//随着异常从push_back的传播，temp被销毁。作为唯一管理这个Widget的std::shared_ptr，它自动销毁Widget，在这里就是调用killWidget。
+ptrs.emplace_back(new Widget, killWidget);
+//通过new Widget创建的原始指针完美转发给emplace_back中，list节点被分配的位置。如果分配失败，还是抛出内存溢出异常。
+//当异常从emplace_back传播，原始指针是仅有的访问堆上Widget的途径，但是因为异常而丢失了，那个Widget的资源（以及任何它所拥有的资源）发生了泄漏。
+
+//坦白说，无论如何，你不应该将“new Widget”之类的表达式传递给emplace_back或者push_back或者大多数这种函数
+std::shared_ptr<Widget> spw(new Widget,      //创建Widget，让spw管理它
+                            killWidget);
+ptrs.push_back(std::move(spw));              //添加spw右值
+//emplace_back的版本如下：
+std::shared_ptr<Widget> spw(new Widget, killWidget);
+ptrs.emplace_back(std::move(spw));
+
+```
 
 #### 类的成员函数
 如果成员函数定义发生在头文件，那么这个头文件中此函数很可能被优化成inline(如果成员函数的size不是太大的话)。
@@ -2047,10 +2178,46 @@ p.get_future().wait();                  //等待对应于p的那个future
 ```
 
 **Effective Modern C++ 40**
+对于并发使用std::atomic，对于特殊内存使用volatile.
+- std::atomic用于在不使用互斥锁情况下，来使变量被多个线程访问的情况。是用来编写并发程序的一个工具。对访问特殊内存没用。
+- volatile用在读取和写入不应被优化掉的内存上。是用来处理特殊内存的一个工具。对并发编程没用。
 
+std::atomic会限制这种重排序，并且这样的限制之一是，在源代码中，对std::atomic变量写之前不会有任何操作（或者操作发生在其他核心上）。确保valAvailable赋值语句之前的其他语句都已经执行，不会出现指令重排。
+```cpp
+std::atomic<bool> valVailable(false); 
+auto imptValue = computeImportantValue();   //计算值
+valAvailable = true;                        //告诉另一个任务，值可用了
+```
 
+volatile会防止编译器对内存读写优化。如果不声明volatile，编译器会进行如下优化：
+```cpp
+//比如这样写代码
+auto y = x;                             //读x
+y = x;                                  //再次读x
+x = 10;                                 //写x
+x = 20;                                 //再次写x
+//编译器优化成了这样
+auto y = x;                             //读x
+x = 20;                                 //写x
+```
+这种优化仅仅在内存表现正常时有效。“特殊”的内存不行。最常见的“特殊”内存是用来做内存映射I/O的内存。这种内存实际上是与外围设备（比如外部传感器或者显示器，打印机，网络端口）通信，而不是读写通常的内存（比如RAM）。volatile是告诉编译器我们正在处理特殊内存。意味着告诉编译器“不要对这块内存执行任何优化”。
+```
+//如果x的值是一个温度传感器上报的，第二次对于x的读取就不是多余的，因为温度可能在第一次和第二次读取之间变化。
+volatile int x;
+auto y = x;                             //读x.这里y推导为int，但是由于等号右边是volatile，所有代码不会被优化掉。
+y = x;                                  //再次读x
+//如果x与无线电发射器的控制端口关联，则代码是给无线电发指令，10和20意味着不同的指令。优化掉第一条赋值会改变发送到无线电的指令流。
+x = 10;                                 //写x
+x = 20;                                 //再次写x
+```
+为什么std::atomic不适合这种场景。编译器被允许消除对std::atomic的冗余操作，也就std::atomic的冗余操作会像普通变量一样被优化掉。
+额外说一下，std::atomic不支持拷贝构造，拷贝赋值，移动构造，移动赋值，因为这些操作无法做到原子性，硬件不支持。但是std::atomic提供了store()和load()。
+因为std::atomic和volatile用于不同的目的，所以可以结合起来使用
+```cpp
+//如果vai变量关联了内存映射I/O的位置，被多个线程并发访问，这会很有用。
+volatile std::atomic<int> vai;          //对vai的操作是原子性的，且不能被优化掉
+```
 *HERE，搞完这些就直接从Effective Modern C++ 23继续*
-
 
 
 *在网上找找Effecti C++和More Effective C++的哪些条款已经不适用现代C++语法了。更新一下笔记*
@@ -2064,6 +2231,432 @@ https://blog.csdn.net/fl2011sx/article/details/128077440
 
 C++ 11 14 17的模板元编程语法(已经保存到WIZNOTE中)
 https://zhuanlan.zhihu.com/p/672410503
+
+#### Effective Modern C++的相关内容（右值引用、移动语义、完美转发）
+**右值引用、移动语义、完美转发**
+当你第一次了解到移动语义（move semantics）和完美转发（perfect forwarding）的时候，它们看起来非常直观：
+移动语义使编译器有可能用廉价的移动操作来代替昂贵的拷贝操作。正如拷贝构造函数和拷贝赋值操作符给了你控制拷贝语义的权力，移动构造函数和移动赋值操作符也给了你控制移动语义的权力。移动语义也允许创建只可移动（move-only）的类型，例如std::unique_ptr，std::future和std::thread。
+完美转发使接收任意数量实参的函数模板成为可能，它可以将实参转发到其他的函数，使目标函数接收到的实参与被传递给转发函数的实参保持一致。
+右值引用是连接这两个截然不同的概念的胶合剂。它是使移动语义和完美转发变得可能的基础语言机制。
+**左值，右值**
+最遍布C++11各处的特性可能是移动语义了，移动语义的基础是区分右值和左值表达式。那是因为右值表明这个对象适合移动操作，而左值一般不适合。概念上（尽管不经常在实际上用），右值对应于从函数返回的临时对象，而左值对应于你可以引用的（can refer to）对象，或者通过名字，或者通过指针或左值引用。
+对于判断一个表达式是否是左值的一个有用的启发就是，看看能否取得它的地址。如果能取地址，那么通常就是左值。如果不能，则通常是右值。这个启发的好处就是帮你记住，一个表达式的类型与它是左值还是右值无关。也就是说，有个类型T，你可以有类型T的左值和右值。当你碰到右值引用类型的形参时，记住这一点非常重要，因为形参本身是个左值：
+```cpp
+class Widget {
+public:
+    Widget(Widget&& rhs);   //rhs是个左值，//尽管它有个右值引用的类型
+};
+```
+**Effective Modern C++ 23**
+理解std::move和std::forward
+std::move和std::forward仅仅是执行转换（cast）的函数（事实上是函数模板）。std::move无条件的将它的实参转换为右值(类型是右值引用)，它只进行转换，不移动任何东西。而std::forward只在特定情况满足时下进行转换。
+std::move的使用代表着无条件向右值的转换，而使用std::forward只对绑定了右值的引用进行到右值转换。
+
+第一，不要在你希望能移动对象的时候，声明他们为const。对const对象的移动请求会悄无声息的被转化为拷贝操作。第二点，std::move不仅不移动任何东西，而且它也不保证它执行转换的对象可以被移动。关于std::move，你能确保的唯一一件事就是将它应用到一个对象上，你能够得到一个右值。
+
+1. std::move执行到右值的无条件的转换，但就自身而言，它不移动任何东西。
+2. std::forward只有当它的参数被绑定到一个右值时，才将参数转换为右值。
+3. std::move和std::forward在运行期什么也不做。
+
+右值引用，它就是个引用。从引用的层面上来讲，我们甚至可以把它理解为一种特殊的const &（右值引用一定是const &，const &不一定是右值引用－－－请注意，这句话是帮助你理解的，请不要把两者混为一谈）。右值引用和std::move没什么关系，std::move只是把左值转换成右值引用，但是std::move()的返回值属于右值，所以此时等号右边是一个类型为右值引用的右值。
+```cpp
+MyObj mobj;
+MyObj &&rref = std::move(mobj);
+```
+上述代码意味着，std::move：嘿！我已经把左值mobj转换成右值了！也就是说mobj已经做好了被移动的一切准备！从我开始，你就不能直接使用mobj了因为它随时会被移动！你对mobj只能做两件事：赋值（operator＝）或者销毁！，std::move(mobj)得到了一个类型为右值引用的右值，准确地说是将亡值。
+
+
+**解释左值，右值，将亡值，右值引用等内容**
+对右值、右值引用，将亡值的深刻理解。https://zhuanlan.zhihu.com/p/620583555
+首先需要明白两个概念：类型（type）和值类别（value category）。
+类型(type)，表征的是大小和结构。内置类型int ,char。自定义类型结构体和类。
+值类别(value category)，就是关于变量的左右值属性，先说结论，我认为值类别表征了数据的存储位置。
+
+什么是右值？什么是左值？
+最后总结一下，不能取地址就是右值的说法有些不准确，或者说我不太认同这种说法，我认为只要数据位于的区域你没有权限访问，这些数据就是右值，你有权限访问的区域，存储的数据是左值。
+所以你看，直接创建的局部变量，全局变量，new出来的变量都是左值，为什么？就是因为栈区，堆区，静态区都是系统允许你访问的区域，我们对这些区域拥有写入的权限，所以系统可以给你它们的地址。但是像什么字面常量，临时变量（隐式类型转换表达式产生的中间值，函数返回产生的中间值...），匿名对象就是右值，因为程序编译后，它们位于代码区或者你没有修改这些数据的必要，所以系统才不会把地址给你，这些空间就像系统的私人空间，你不能随便的访问，只有在程序运行后，为了运行程序，系统才会访问这些空间。
+我认为区分左右值的依据应该是是否能在语言层面上修改数据，能修改的数据就是左值，不能修改的数据就是右值，而是否能修改的本质是我们对地址空间的权限，对正文代码区只有读权限，对栈区，堆区以及静态区我们有读写权限，无论语言怎么限制（这里点名const），我们都能通过一些特殊手段，突破这个限制，绕过编译器的检查，非法的篡改被语言级别限制的数据。比如函数的返回值，虽然返回值是一个临时变量，具有常属性（这是语言级别的限制），但是它还是存储在栈区，我们当然可以非法篡改，具体可以看函数栈帧理解这篇文章。
+
+将亡值？
+对于临时变量这种类型属于将亡值，它即可以算作右值，也可以算作范左值。也就是说语言层面上不鼓励获取它的地址或修改它的值，所以应该把它当做右值。但在技术层面有手段可以修改它的值查看它的地址，因为他存储在可读写区域。
+```
+glvalue（泛左值）= lvalue（传统意义上的左值）+ xvalue（将亡值）
+rvalue（传统意义上的右值）= prvalue（纯右值）+ xvalue（将亡值）
+```
+引用？
+C++的引用，是为了代替C中的指针才出现的。引用的出现，使得不用像指针一样暴露地址。
+
+右值引用是右值吗？
+1. 右值引用类型的变量是左值。
+右值引用变量作为实参不能调用形参为右值引用的函数。
+```cpp
+void print(int& x) {	printf("void print(int& x)\n");}
+void print(int&& x){	printf("void print(int&& x)\n");}
+int main(){
+	int x = 0;
+	int& y = x;
+	int&& z = 1;
+	print(y);
+	print(z);//这里无法调用输出，void print(int&& x)
+	return 0;
+}
+```
+2. 没有创建变量接收的右值引用，才是右值。此时他们就是一个实实在在的右值了，或者说是一个将亡值，它的资源即将被释放。你看，一些函数可以返回右值引用吧，一些表达式的值也是右值引用吧（比如匿名对象的创建），所以一些函数表达式，匿名对象的表达式它们的运算结果都是右值引用，且右值引用没有名字，这时的右值引用就是右值了。
+只有在函数的返回以及使用匿名对象的过程中，右值引用才是实实在在的右值啊，但是这些过程都非常短，这个时候就不得不提同样很“短”的将亡值了，我们知道因为C++11提出了右值引用，将亡值这一概念才会被提出，两者的关系非常紧密，将亡值是右值，右值引用可以引用右值，当然也能引用将亡值了，但是引用后的右值引用却是一个左值，我们可以通过右值引用修改将亡值的数据，你看，虽然将亡值被释放了，但是它的资源却给了右值引用，一般在构造函数中，我们将右值引用得到的将亡值资源转移到我们自己对象上。
+
+**Effective Modern C++ 24**
+区分通用引用与右值引用
+- 如果一个函数模板形参的类型为T&&，并且T需要被推导得知，或者如果一个对象被声明为auto&&，这个形参或者对象就是一个通用引用。
+- 如果类型声明的形式不是标准的type&&，或者如果类型推导没有发生，那么type&&代表一个右值引用。
+- 通用引用，如果它被右值初始化，就会对应地成为右值引用；如果它被左值初始化，就会成为左值引用。
+```cpp
+template<typename T>
+void f(T&& param);              //param是一个通用引用
+Widget w;
+f(w);                           //传递给函数f一个左值；param的类型将会是Widget&，也即左值引用
+f(std::move(w));                //传递给f一个右值；param的类型会是Widget&&，即右值引用
+```
+更多详细的通用引用的例子可见原文，值得查看。
+
+**Effective Modern C++ 25**
+转发时，对右值引用使用std::move，对通用引用使用std::forward。
+右值引用代表这个类型可以被移动，既然可以移动，我就优先考虑使用std::move来移动它，将它变为右值后传递给移动操作函数。
+当把右值引用转发给其他函数时，右值引用应该被无条件转换为右值（通过std::move），因为它们总是绑定到右值；
+当转发通用引用时，通用引用应该有条件地转换为右值（通过std::forward），因为它们只是有时绑定到右值。
+应该避免在右值引用上使用std::forward。更应避免在通用引用上使用std::move。
+std::move_if_noexcept()：如果类型T的移动构造函数（简称move-ctor）是noexcept修饰符保证过的，则返回T&&, 否则返回const T&.
+```cpp
+class Widget {
+public:
+    Widget(Widget&& rhs)        //rhs是右值引用
+    : name(std::move(rhs.name)),
+      p(std::move(rhs.p))
+      { … }
+private:
+    std::string name;
+    std::shared_ptr<SomeDataStructure> p;
+};
+class Widget {
+public:
+    template<typename T>
+    void setName(T&& newName)           //newName是通用引用
+    { name = std::forward<T>(newName); }
+};
+```
+- 最后一次使用时，在右值引用上使用std::move，在通用引用上使用std::forward。
+```cpp
+template<typename T>
+void setSignText(T&& text)                  //text是通用引用
+{
+  sign.setText(text);                       //使用text但是不改变它
+  
+  auto now = 
+      std::chrono::system_clock::now();     //获取现在的时间
+  
+  signHistory.add(now, 
+                  std::forward<T>(text));   //有条件的转换为右值
+}
+```
+- 对按值返回的函数，要返回的右值引用和通用引用执行相同的操作。
+```cpp
+//如果结果存储在右值引用中，则使用std::move()，移动lhs到返回值中
+Matrix                              //按值返回
+operator+(Matrix&& lhs, const Matrix& rhs)
+{
+    lhs += rhs;
+    return std::move(lhs);	        //如果结果存储在右值引用中，则使用std::move()，移动lhs到返回值中
+}
+//如果原始对象是右值，可以将其移动到返回值中（避免拷贝开销），但是如果原始对象是左值，必须创建副本。
+template<typename T>
+Fraction                            //按值返回
+reduceAndCopy(T&& frac)             //通用引用的形参
+{
+    frac.reduce();
+    return std::forward<T>(frac);		//移动右值，或拷贝左值到返回值中
+}
+```
+- 如果局部对象可以被返回值优化消除，就绝不使用std::move或者std::forward。
+编译器可能会在按值返回的函数中消除对局部对象的拷贝（或者移动），如果满足（1）局部对象与函数返回值的类型相同；（2）局部对象就是要返回的东西。
+标准要求当RVO被允许时，或者实行拷贝消除，或者将std::move隐式应用于返回的局部对象。
+```cpp
+Widget makeWidget()                 //makeWidget的“拷贝”版本
+{
+    Widget w;
+    …
+    return w;                       //“拷贝”w到返回值中
+}
+```
+
+**Effective Modern C++ 26**
+避免在通用引用上重载。
+使用通用引用的函数在C++中是最贪婪的函数。它们几乎可以精确匹配任何类型的实参（极少不适用的实参在Item30中介绍）。这也是把重载和通用引用组合在一块是糟糕主意的原因：通用引用的实现会匹配比开发者预期要多得多的实参类型。
+```cpp
+std::multiset<std::string> names;           //全局数据结构
+template<typename T> void logAndAdd(T&& name) {
+    auto now = std::chrono::system_clock::now();
+    log(now, "logAndAdd");
+    names.emplace(std::forward<T>(name));
+}
+
+std::string petName("Darla");           //跟之前一样
+logAndAdd(petName);                     //跟之前一样，拷贝左值到multiset
+logAndAdd(std::string("Persephone"));	//移动右值而不是拷贝它
+logAndAdd("Patty Dog");                 //在multiset直接创建std::string
+                                        //而不是拷贝一个临时std::string
+void logAndAdd(int idx)             //新的重载
+{
+    auto now = std::chrono::system_clock::now();
+    log(now, "logAndAdd");
+    names.emplace(nameFromIdx(idx));
+}
+```
+**Effective Modern C++ 27**
+熟悉通用引用重载的替代方法
+- 放弃重载
+在Item26中的例子中，logAndAdd是许多函数的代表，这些函数可以使用不同的名字来避免在通用引用上的重载的弊端。例如两个重载的logAndAdd函数，可以分别改名为logAndAddName和logAndAddNameIdx。
+- 传递const t&
+一种替代方案是退回到C++98，然后将传递通用引用替换为传递lvalue-refrence-to-const。事实上，这是Item26中首先考虑的方法。缺点是效率不高。现在我们知道了通用引用和重载的相互关系，所以放弃一些效率来确保行为正确简单可能也是一种不错的折中。
+- 传值
+通常在不增加复杂性的情况下提高性能的一种方法是，将按传引用形参替换为按值传递。因为没有std::string构造函数可以接受整型参数，所有int或者其他整型变量（比如std::size_t、short、long等）都会使用int类型重载的构造函数。相似的，所有std::string类似的实参（还有可以用来创建std::string的东西，比如字面量“Ruth”等）都会使用std::string类型的重载构造函数。
+```cpp
+class Person {
+public:
+    explicit Person(std::string n)  //代替T&&构造函数，
+    : name(std::move(n)) {}         //std::move的使用见条款41
+    explicit Person(int idx)        //同之前一样
+    : name(nameFromIdx(idx)) {}
+    …
+private:
+    std::string name;
+};
+```
+- 使用tag dispatch
+传递lvalue-reference-to-const以及按值传递都不支持完美转发。如果使用通用引用的动机是完美转发，我们就只能使用通用引用了，没有其他选择。
+先看一下没有改造的原例
+通过在实现类中，添加第二个参数，实现两个重载版本。避免了通用引用重载导致的精确匹配问题。
+在这个设计中，类型std::true_type和std::false_type是“标签”（tag），其唯一目的就是强制重载解析按照我们的想法来执行。注意到我们甚至没有对这些参数进行命名。他们在运行时毫无用处，事实上我们希望编译器可以意识到这些标签形参没被使用，然后在程序执行时优化掉它们。（至少某些时候有些编译器会这样做。）通过创建标签对象，在logAndAdd内部将重载实现函数的调用“分发”（dispatch）给正确的重载。因此这个设计名称为：tag dispatch。这是模板元编程的标准构建模块，你对现代C++库中的代码了解越多，你就会越多遇到这种设计。
+就我们的目的而言，tag dispatch的重要之处在于它可以允许我们组合重载和通用引用使用，而没有Item26中提到的问题。分发函数——logAndAdd——接受一个没有约束的通用引用参数，但是这个函数没有重载。实现函数——logAndAddImpl——是重载的，一个接受通用引用参数，但是重载规则不仅依赖通用引用形参，还依赖新引入的标签形参，标签值设计来保证有不超过一个的重载是合适的匹配。结果是标签来决定采用哪个重载函数。通用引用参数可以生成精确匹配的事实在这里并不重要。
+```cpp
+std::multiset<std::string> names;       //全局数据结构
+template<typename T>                    //志记信息，将name添加到数据结构
+void logAndAdd(T&& name) {
+    auto now = std::chrono::system_clokc::now();
+    log(now, "logAndAdd");
+    names.emplace(std::forward<T>(name));
+}
+```
+在看一下改造后的例子
+```cpp
+template<typename T>
+void logAndAdd(T&& name) {
+    logAndAddImpl(
+        std::forward<T>(name),
+        std::is_integral<typename std::remove_reference<T>::type>()
+    );
+}
+template<typename T>                            //非整型实参：添加到全局数据结构中
+void logAndAddImpl(T&& name, std::false_type)	//译者注：高亮std::false_type
+{
+    auto now = std::chrono::system_clock::now();
+    log(now, "logAndAdd");
+    names.emplace(std::forward<T>(name));
+}
+std::string nameFromIdx(int idx);           //与条款26一样，整型实参：查找名字并用它调用logAndAdd
+void logAndAddImpl(int idx, std::true_type) //译者注：高亮std::true_type
+{
+  logAndAdd(nameFromIdx(idx)); 
+}
+```
+- 约束使用通用引用的模板
+这是原来的例子，使用了通用引用。
+```cpp
+class Person {
+public:
+    template<typename T>
+    explicit Person(T&& n)              //完美转发的构造函数，初始化数据成员
+    : name(std::forward<T>(n)) {}
+
+    explicit Person(int idx)            //int的构造函数
+    : name(nameFromIdx(idx)) {}
+    …
+
+private:
+    std::string name;
+};
+```
+这里使用std::enable_if<condition>::type的方式。
+我们只在传递的类型不是Person时使用Person的完美转发构造函数。如果传递的类型是Person，我们要禁止完美转发构造函数（即让编译器忽略它），因为这会让拷贝或者移动构造函数处理调用，这是我们想要使用Person初始化另一个Person的初衷。
+```cpp
+class Person {
+public:
+    template<
+        typename T, typename = std::enable_if_t<!std::is_base_of<Person, std::decay_t<T>>::value
+            && !std::is_integral<std::remove_reference_t<T>>::value>>
+    explicit Person(T&& n)//对于std::strings和可转化为
+    : name(std::forward<T>(n))//std::strings的实参的构造函数
+    {
+        //断言可以用T对象创建std::string
+        static_assert(std::is_constructible<std::string, T>::value, "Parameter n can't be used to construct a std::string");
+	}
+
+    explicit Person(int idx)        //对于整型实参的构造函数
+    : name(nameFromIdx(idx))
+    { … }
+
+    …                               //拷贝、移动构造函数等
+private:
+    std::string name;
+};
+```
+请记住：
+1. 通用引用和重载的组合替代方案包括使用不同的函数名，通过lvalue-reference-to-const传递形参，按值传递形参，使用tag dispatch。
+2. 通过std::enable_if约束模板，允许组合通用引用和重载使用，但它也控制了编译器在哪种条件下才使用通用引用重载。
+3. 通用引用参数通常具有高效率的优势，但是可用性就值得斟酌。
+
+**Effective Modern C++ 28**
+理解引用折叠
+`func(w);`中func被推导为`void func(Widget& && param);`,这里引用折叠发挥作用得到`void func(Widget& param);`。
+引用折叠发生在四种情况下：
+第一，也是最常见的就是模板实例化。
+第二，是auto变量的类型生成。
+第三，是typedef和别名声明的产生和使用中。
+最后一种引用折叠发生的情况是，decltype使用的情况。
+```cpp
+template<typename T> void func(T&& param);
+
+Widget widgetFactory();     //返回右值的函数
+Widget w;                   //一个变量（左值）
+func(w);                    //用左值调用func；T被推导为Widget&
+func(widgetFactory());      //用右值调用func；T被推导为Widget
+auto&& w1 = w; //第二种情况
+//第三种情况
+template<typename T>
+class Widget {
+public:
+    typedef T&& RvalueRefToT;
+    …
+};
+//第四种情况
+template<typename Container, typename Index>    //最终的C++14版本
+decltype(auto) authAndAccess(Container&& c, Index i) {
+    authenticateUser();
+    return std::forward<Container>(c)[i];
+}
+```
+现在我们真正理解了Item24中引入的通用引用。通用引用不是一种新的引用，它实际上是满足以下两个条件下的右值引用：
+类型推导区分左值和右值。T类型的左值被推导为T&类型，T类型的右值被推导为T。发生引用折叠。
+
+请记住：
+1. 引用折叠发生在四种情况下：模板实例化，auto类型推导，typedef与别名声明的创建和使用，decltype。
+2. 当编译器在引用折叠环境中生成了引用的引用时，结果就是单个引用。有左值引用折叠结果就是左值引用，否则就是右值引用。
+3. 通用引用就是在特定上下文的右值引用，上下文是通过类型推导区分左值还是右值，并且发生引用折叠的那些地方。
+
+**Effective Modern C++ 29**
+认识移动操作的缺点
+- 有的容器移动成本是高的。对比vector和std::array
+```cpp
+std::vector<Widget> vm1;
+//把数据存进vw1
+…
+//把vw1移动到vw2。以常数时间运行。只有vw1和vw2中的指针被改变
+auto vm2 = std::move(vm1);
+
+std::array<Widget, 10000> aw1;
+//把数据存进aw1
+…
+//把aw1移动到aw2。以线性时间运行。aw1中所有元素被移动到aw2
+auto aw2 = std::move(aw1);
+```
+- 一个类型的移动操作也未必比复制块。
+另一方面，std::string提供了常数时间的移动操作和线性时间的复制操作。这听起来移动比复制快多了，但是可能不一定。许多字符串的实现采用了小字符串优化（small string optimization，SSO）。“小”字符串（比如长度小于15个字符的）存储在了std::string的缓冲区中，并没有存储在堆内存，移动这种存储的字符串并不比复制操作更快。
+
+- 移动操作不可用
+标准库中的某些容器操作提供了强大的异常安全保证，确保依赖那些保证的C++98的代码在升级到C++11且仅当移动操作不会抛出异常，从而可能替换操作时，不会不可运行。结果就是，即使类提供了更具效率的移动操作，而且即使移动操作更合适（比如源对象是右值），编译器仍可能被迫使用复制操作，因为移动操作没有声明noexcept。
+
+总结，存在几种情况，C++11的移动语义并无优势：
+- 没有移动操作：要移动的对象没有提供移动操作，所以移动的写法也会变成复制操作。
+- 移动不会更快：要移动的对象提供的移动操作并不比复制速度更快。
+- 移动不可用：进行移动的上下文要求移动操作不会抛出异常，但是该操作没有被声明为noexcept。
+值得一提的是，还有另一个场景，会使得移动并没有那么有效率：
+- 源对象是左值：除了极少数的情况外（例如Item25），只有右值可以作为移动操作的来源。
+
+请记住：
+在使用不了解的类型时，假定移动操作不存在，成本高，未被使用。
+在已知的类型或者支持移动语义的代码中，就不需要上面的假设。
+
+**Effective Modern C++ 30**
+熟悉完美转发失败的情况。
+回顾一下“完美转发”的含义。完美转发（perfect forwarding）意味着我们不仅转发对象，我们还转发显著的特征：它们的类型，是左值还是右值，是const还是volatile。“转发”仅表示将一个函数的形参传递——就是转发——给另一个函数。对于第二个函数（被传递的那个）目标是收到与第一个函数（执行传递的那个）完全相同的对象。我们希望被转发的函数能够使用最开始传进来的那些对象。关于通常目的的转发，我们将处理引用形参。这规则排除了按值传递的形参，因为它们是原始调用者传入内容的拷贝。指针形参也被排除在外，因为我们不想强迫调用者传入指针。
+以下情况，会使得完美转发失败.
+1. 花括号初始化器
+```cpp
+template<typename... Ts>
+void fwd(Ts&&... params)            //接受任何实参
+{
+    f(std::forward<Ts>(params)...); //转发给f
+}
+void f(const std::vector<int>& v);
+f({ 1, 2, 3 });         //可以，“{1, 2, 3}”隐式转换为std::vector<int>
+fwd({ 1, 2, 3 });       //错误！不能编译
+//解决方法
+auto il = { 1, 2, 3 };  //il的类型被推导为std::initializer_list<int>
+fwd(il);                //可以，完美转发il给f
+```
+2. 0或者NULL作为空指针
+当你试图传递0或者NULL作为空指针给模板时，类型推导会出错，会把传来的实参推导为一个整型类型（典型情况为int）而不是指针类型。结果就是不管是0还是NULL都不能作为空指针被完美转发。解决方法非常简单，传一个nullptr而不是0或者NULL。
+3. 仅有声明的整型static const数据成员
+通常，无需在类中定义整型static const数据成员；声明就可以了。这是因为编译器会对此类成员实行常量传播（const propagation），因此消除了保留内存的需要。
+尽管代码中没有使用MinVals的地址，但是fwd的形参是通用引用，通常被视作指针，需要使用MinVals的地址。因此，必须有内存使得指针可以指向。通过引用传递的整型static const数据成员，通常需要定义它们。如果只是声明他们则在内存中没有
+```cpp
+class Widget {
+public:
+    static const std::size_t MinVals = 28;  //MinVal的声明
+};
+void f(std::size_t val);
+f(Widget::MinVals);         //可以，视为“f(28)”
+fwd(Widget::MinVals);       //错误！不应该链接
+//需要给MinVals添加定义
+const std::size_t Widget::MinVals;  //在Widget的.cpp文件。这样链接就不会报错
+```
+4. 重载函数的名称和模板名称
+完美转发函数无法直接推导出应该使用哪个函数或函数模板，需要在给完美转发函数传参的时候指定类型。
+```cpp
+using ProcessFuncType = int (*)(int);           //写个类型定义；见条款9
+ProcessFuncType processValPtr = processVal;     //指定所需的processVal签名
+fwd(processValPtr);                             //可以
+fwd(static_cast<ProcessFuncType>(workOnVal));   //也可以
+```
+5. 位域
+所谓位域，就是把一个字节中的二进制位划分为不同的区域，并说明每个区域的位数。每个域都有一个域名，允许程序中按照域名进行操作。这样就可以把几个不同的对象用一个字节的二进制位域来表示。
+```cpp
+struct <位域结构名>{
+   ...
+   <类型说明符> <位域名> : <位域长度> // 位域列表
+   ...
+};
+```
+完美转发函数无法直接推导出位域，因为没有指针和引用可以指向某个位域。
+```cpp
+struct IPv4Header {
+    std::uint32_t version:4,
+                  IHL:4,
+                  DSCP:6,
+                  ECN:2,
+                  totalLength:16;
+};
+void f(std::size_t sz);         //要调用的函数
+IPv4Header h;
+f(h.totalLength);               //可以
+fwd(h.totalLength);             //错误！
+//解决办法，拷贝位域值；参看条款6了解关于初始化形式的信息
+auto length = static_cast<std::uint16_t>(h.totalLength);
+fwd(length);                    //转发这个副本
+```
+
+请记住：
+- 当模板类型推导失败或者推导出错误类型，完美转发会失败。
+- 导致完美转发失败的实参种类有花括号初始化，作为空指针的0或者NULL，仅有声明的整型static const数据成员，模板和重载函数的名字，位域。
+
 
 #### 计划
 学习C++模板元编程详细教程：https://blog.csdn.net/fl2011sx/article/details/128077440

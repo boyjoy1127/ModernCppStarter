@@ -2232,6 +2232,428 @@ https://blog.csdn.net/fl2011sx/article/details/128077440
 C++ 11 14 17的模板元编程语法(已经保存到WIZNOTE中)
 https://zhuanlan.zhihu.com/p/672410503
 
+#### Effective C++（模板与泛型编程）
+**Effective C++ 41**
+了解隐式接口和编译期多态
+考虑以下例子：
+```cpp
+template<typename T>
+void DoProcessing(T& w) {
+    if (w.size() > 10 && w != someNastyWidget) {
+    ...
+```
+以上代码中，T类型的隐式接口要求：
+提供一个名为size的成员函数，该函数的返回值可与int（10 的类型）执行operator>，或经过隐式转换后可执行operator>。
+必须支持一个operator!=函数，接受T类型和someNastyWidget的类型，或其隐式转换后得到的类型。
+此处没有考虑operator&&被重载的可能性。
+加诸于模板参数身上的隐式接口，就像加诸于类对象身上的显式接口“一样真实”，两者都在编译期完成检查，你无法在模板中使用“不支持模板所要求之隐式接口”的对象（代码无法通过编译）。
+请记住：
+1. 类与模板都支持接口和多态。
+2. 对于类而言接口是显式的，以函数签名为中心，多态则是通过虚函数发生于运行期
+3. 对模板参数而言，接口是隐式的，奠基于有效表达式，多态则是通过模板具现化和函数重载解析（function overloading resolution）发生于编译期。
+
+**Effective C++ 42**
+了解 typename 的双重含义
+在模板声明式中，使用class和typename关键字并没有什么不同，但在模板内部，typename拥有更多的一重含义。
+为了方便解释，我们首先需要引入一个模板相关的概念：模板内出现的名称如果相依于某个模板参数，我们称之为从属名称（dependent names）；如果从属名称在类内呈嵌套状，我们称之为嵌套从属名称（nested dependent name）；如果一个名称并不倚赖任何模板参数的名称，我们称之为非从属名称（non-dependent names）。
+考虑以下模板代码：
+```cpp
+template<typename C>
+void Print2nd(const C& container) {
+    if (container.size() >= 2) {
+        C::const_iterator iter(container.begin());
+        ++iter;
+        int value = *iter;
+        std::cout << value;
+    }
+}
+```
+这段代码看起来没有任何问题，但实际编译时却会报错，这一切的罪魁祸首便是C::const_iterator。此处的C::const_iterator是一个指向某类型的嵌套从属类型名称（nested dependent type name），而嵌套从属名称可能会导致解析困难，因为在编译器知道C是什么之前，没有任何办法知道C::const_iterator是否为一个类型，这就导致出现了歧义状态，而 C++ 默认假设嵌套从属名称不是类型名称。
+
+显式指明嵌套从属类型名称的方法就是将typename关键字作为其前缀词：
+```cpp
+typename C::const_iterator iter(container.begin());
+```
+同样地，若嵌套从属名称出现在模板函数声明部分，也需要显式地指明是否为类型名称：
+```cpp
+template<typename C>
+void Print2nd(const C& container, const typename C::iterator iter);
+```
+这一规则的例外是，typename不可以出现在基类列表内的嵌套从属类型名称之前，也不可以在成员初始化列表中作为基类的修饰符：
+```cpp
+template<typename T>
+class Derived : public Base<T>::Nested {    // 基类列表中不允许使用 typename
+public:
+    explicit Derived(int x)
+        : Base<T>::Nested(x) {                 // 成员初始化列表中不允许使用 typename
+        typename Base<T>::Nested temp;
+        ...
+    }
+    ...
+};
+```
+在类型名称过于复杂时，可以使用using或typedef来进行简化：
+```cpp
+using value_type = typename std::iterator_traits<IterT>::value_type;
+```
+请记住：
+- 在模板声明式中，使用class和typename关键字并没有什么不同
+- 在模板内部，typename拥有更多的一重含义。typename关键字作为其前缀词可以显式指明嵌套从属类型名称。这一规则的例外是，typename不可以出现在基类列表内的嵌套从属类型名称之前，也不可以在成员初始化列表中作为基类的修饰符。
+
+**Effective C++ 43**
+学习处理模板化基类内的名称
+在模板编程中，模板类的继承并不像普通类那么自然，考虑以下情形：
+```cpp
+class MsgInfo { ... };
+template<typename Company>
+class MsgSender {
+public:
+    void SendClear(const MsgInfo& info) { ... }
+    ...
+};
+template<typename Company>
+class LoggingMsgSender : public MsgSender<Company> {
+public:
+    void SendClearMsg(const MsgInfo& info) {
+        SendClear(info);        // 调用基类函数，这段代码无法通过编译
+    }
+    ...
+};
+```
+很明显，由于直到模板类被真正实例化之前，编译器并不知道MsgSender<Company>具体长什么样，有可能它是一个全特化的版本，而在这个版本中不存在SendClear函数。由于 C++ 的设计策略是宁愿较早进行诊断，所以编译器会拒绝承认在基类中存在一个SendClear函数。
+为了解决这个问题，我们需要令 C++“进入模板基类观察”的行为生效，有三种办法达成这个目标：
+第一种：在基类函数调用动作之前加上this->：
+```cpp
+this->SendClear(info);
+```
+第二种：使用using声明式：
+```cpp
+using MsgSender<Company>::SendClear;
+SendClear(info);
+```
+第三种：明白指出被调用的函数位于基类内：
+```cpp
+MsgSender<Company>::SendClear(info);
+```
+第三种做法是最不令人满意的，如果被调用的是虚函数，上述的明确资格修饰（explicit qualification）会使“虚函数绑定行为”失效。
+请记住：
+在派生类中处理模板化基类内的名称，需要使用this指针来调用基类函数，或者使用using方式声明函数的完整命名空间。
+
+**Effective C++ 44**
+模板可以节省时间和避免代码重复，编译器会为填入的每个不同模板参数具现化出一份对应的代码，但长此以外，可能会造成代码膨胀（code bloat），生成浮夸的二进制目标码。
+
+基于共性和变性分析（commonality and variability analysis） 的方法，我们需要分析模板中重复使用的部分，将其抽离出模板，以减轻模板具现化带来的代码量。
+
+因非类型模板参数而造成的代码膨胀，往往可以消除，做法是以函数参数或类成员变量替换模板参数。下例`std::size_t n`就是非类型模板参数。
+因类型模板参数而造成的代码膨胀，往往可以降低，做法是让带有完全相同二进制表述的具现类型共享实现代码。下例`typename T`就是类型模板参数。
+参考以下矩阵类的例子：
+```cpp
+template<typename T, std::size_t n>
+class SquareMatrix {
+public:
+    void Invert();
+    ...
+private:
+    std::array<T, n * n> data;
+};
+```
+带参数的invert位于base class SquareMatrixBase中。和SquareMatrix一样，SquareMaxtrixBase也是个template,不同的是它只对“矩阵元素对象的类型”参数化，不对矩阵的尺寸参数化，因此对于某给定之元素对象类型，所有矩阵共享同一个SquareMatrixBase class。他们也将因为此共享这唯一一个class内的invert。修改为：
+```cpp
+template<typename T>
+class SquareMatrixBase {
+protected:
+    void Invert(std::size_t matrixSize);
+    ...
+private:
+    std::array<T, n * n> data;
+};
+
+template<typename T, std::size_t n>
+class SquareMatrix : private SquareMatrixBase<T> {  // private 继承实现，见条款 39
+    using SquareMatrixBase<T>::Invert;              // 避免掩盖基类函数，见条款 33
+
+public:
+    void Invert() { this->Invert(n); }              // 调用模板基类函数，见条款 43
+    ...
+};
+```
+Invert并不是我们唯一要使用的矩阵操作函数，而且每次都往基类传递矩阵尺寸显得太过繁琐，我们可以考虑将数据放在派生类中，在基类中储存指针和矩阵尺寸。修改代码如下：
+```cpp
+template<typename T>
+class SquareMatrixBase {
+protected:
+    SquareMatrixBase(std::size_t n, T* pMem)
+        : size(n), pData(pMem) {}
+    void SetDataPtr(T* ptr) { pData = ptr; }
+    ...
+private:
+    std::size_t size;
+    T* pData;
+};
+
+template<typename T, std::size_t n>
+class SquareMatrix : private SquareMatrixBase<T> {
+public:
+    SquareMatrix() : SquareMatrixBase<T>(n, data.data()) {}
+    ...
+private:
+    std::array<T, n * n> data;
+};
+```
+然而这种做法并非永远能取得优势，硬是绑着矩阵尺寸的那个版本，有可能生成比共享版本更佳的代码。例如在尺寸专属版中，尺寸是个编译期常量，因此可以在编译期藉由常量的广传达到最优化；而在共享版本中，不同大小的矩阵只拥有单一版本的函数，可减少可执行文件大小，也就因此降低程序的 working set（在“虚内存环境”下执行的进程所使用的一组内存页），并强化指令高速缓存区内的引用集中化（locality of reference），这些都可能使程序执行得更快速。究竟哪个版本更佳，只能经由具体的测试后决定。
+
+同样地，上面的代码也使用到了牺牲封装性的protected，可能会导致资源管理上的混乱和复杂，考虑到这些，也许一点点模板代码的重复并非不可接受。
+
+请记住：
+- Templates生成多个classes和多个函数，所以任何template 代码都不该与某个造成膨胀的template参数产生相依关系。
+- 因非类型模板参数而造成的代码膨胀，往往可以消除，做法是以函数参数或类成员变量替换模板参数。
+- 因类型模板参数而造成的代码膨胀，往往可以降低，做法是让带有完全相同二进制表述的具现类型共享实现代码。
+
+**Effective C++ 45**
+运用成员函数模板接受所有兼容类型
+C++ 视模板类的不同具现体为完全不同的的类型，但在泛型编程中，我们可能需要一个模板类的不同具现体能够相互类型转换。
+考虑设计一个智能指针类，而智能指针需要支持不同类型指针之间的隐式转换（如果可以的话），以及普通指针到智能指针的显式转换。很显然，我们需要的是模板拷贝构造函数：
+```cpp
+template<typename T>
+class SmartPtr {
+public:
+    template<typename U>
+    SmartPtr(const SmartPtr<U>& other)
+        : heldPtr(other.get()) { ... }
+
+    template<typename U>
+    explicit SmartPtr(U* p)
+        : heldPtr(p) { ... }
+
+    T* get() const { return heldPtr; }
+    ...
+private:
+    T* heldPtr;
+};
+```
+使用get获取原始指针，并将在原始指针之间进行类型转换本身提供了一种保障，如果原始指针之间不能隐式转换，那么其对应的智能指针之间的隐式转换会造成编译错误。
+模板构造函数并不会阻止编译器暗自生成默认的构造函数，所以如果你想要控制拷贝构造的方方面面，你必须同时声明泛化拷贝构造函数和普通拷贝构造函数，相同规则也适用于赋值运算符：
+```cpp
+template<typename T>
+class shared_ptr {
+public:
+    shared_ptr(shared_ptr const& r);                // 拷贝构造函数
+
+    template<typename Y>
+    shared_ptr(shared_ptr<Y> const& r);             // 泛化拷贝构造函数
+
+    shared_ptr& operator=(shared_ptr const& r);     // 拷贝赋值运算符
+
+    template<typename Y>
+    shared_ptr& operator=(shared_ptr<Y> const& r);  // 泛化拷贝赋值运算符
+
+    ...
+};
+```
+请记住：
+1. 请使用member fuction templates生成“可接受所有兼容类型”的函数。
+2. 如果你声明member templates用于"泛化copy 构造"或“泛化assignment操作”，你还是需要声明正常的copy构造函数和copy assignment操作符。
+
+**Effective C++ 46**
+需要类型转换时请为模板定义非成员函数
+该条款与条款 24 一脉相承，还是使用原先的例子：
+```cpp
+template<typename T>
+class Rational {
+public:
+    Rational(const T& numerator = 0, const T& denominator = 1);
+    const T& Numerator() const;
+    const T& Denominator() const;
+    ...
+};
+template<typename T>
+const Rational<T> operator*(const Rational<T>& lhs, const Rational<T>& rhs) {
+   return Rational<T>(lhs.Numerator() * rhs.Numerator(), lhs.Denominator() * rhs.Denominator());
+}
+Rational<int> oneHalf(1, 2);
+Rational<int> result = oneHalf * 2;     // 无法通过编译！
+```
+上述失败启示我们：模板实参在推导过程中，从不将隐式类型转换纳入考虑。虽然以oneHalf推导出Rational<int>类型是可行的，但是试图将int类型隐式转换为Rational<T>是绝对会失败的。
+由于模板类并不依赖模板实参推导，所以编译器总能够在Rational<T>具现化时得知T，因此我们可以使用友元声明式在模板类内指涉特定函数：
+```cpp
+template<typename T>
+class Rational {
+public:
+    ...
+    friend const Rational<T> operator*(const Rational<T>& lhs, const Rational<T>& rhs);
+    ...
+};
+```
+在模板类内，模板名称可被用来作为“模板及其参数”的简略表达形式，因此下面的写法也是一样的：
+```cpp
+template<typename T>
+class Rational {
+public:
+    ...
+    friend const Rational operator*(const Rational& lhs, const Rational& rhs);
+    ...
+};
+```
+当对象oneHalf被声明为一个Rational<int>时，Rational<int>类于是被具现化出来，而作为过程的一部分，友元函数operator*也就被自动声明出来，其为一个普通函数而非模板函数，因此在接受参数时可以正常执行隐式转换。
+
+为了使程序能正常链接，我们需要为其提供对应的定义式，最简单有效的方法就是直接合并至声明式处：
+```cpp
+friend const Rational operator*(const Rational& lhs, const Rational& rhs) {
+    return Rational(lhs.Numerator() * rhs.Numerator(), lhs.Denominator() * rhs.Denominator());
+}
+```
+由于定义在类内的函数都会暗自成为内联函数，为了降低内联带来的冲击，可以使operator*调用类外的辅助模板函数：
+```cpp
+template<typename T> class Rational;
+template<typename T>
+const Rational<T> DoMultiply(const Rational<T>& lhs, const Rational<T>& rhs) {
+    return Rational<T>(lhs.Numerator() * rhs.Numerator(), lhs.Denominator() * rhs.Denominator());
+}
+template<typename T>
+class Rational {
+public:
+    ...
+    friend const Rational operator*(const Rational& lhs, const Rational& rhs) {
+        return DoMultiply(lhs, rhs);
+    }
+    ...
+};
+```
+
+**Effective C++ 47**
+请使用 traits classes 表现类型信息
+traits classes 可以使我们在编译期就能获取某些类型信息，它被广泛运用于 C++ 标准库中。traits 并不是 C++ 关键字或一个预先定义好的构件：它们是一种技术，也是 C++ 程序员所共同遵守的协议，并要求对用户自定义类型和内置类型表现得一样好。
+
+设计并实现一个 trait class 的步骤如下：
+
+确认若干你希望将来可取得的类型相关信息。
+为该类型选择一个名称。
+提供一个模板和一组特化版本，内含你希望支持的类型相关信息。
+以迭代器为例，标准库中拥有多种不同的迭代器种类，它们各自拥有不同的功用和限制：
+
+input_iterator_tag：单向输入迭代器，只能向前移动，一次一步，客户只可读取它所指的东西。
+output_iterator_tag：单向输出迭代器，只能向前移动，一次一步，客户只可写入它所指的东西。
+forward_iterator_tag：单向访问迭代器，只能向前移动，一次一步，读写均允许。
+bidirectional_iterator_tag：双向访问迭代器，去除了只能向前移动的限制。
+random_access_iterator_tag：随机访问迭代器，没有一次一步的限制，允许随意移动，可以执行“迭代器算术”。
+标准库为这些迭代器种类提供的卷标结构体（tag struct）的继承关系如下：
+```cpp
+struct input_iterator_tag {};
+struct output_iterator_tag {};
+struct forward_iterator_tag : input_iterator_tag {};
+struct bidirectional_iterator_tag : forward_iterator_tag {};
+struct random_access_iterator_tag : bidirectional_iterator_tag {};
+```
+将iterator_category作为迭代器种类的名称，嵌入容器的迭代器中，并且确认使用适当的卷标结构体：
+```cpp
+template< ... >
+class deque {
+public:
+    class iterator {
+    public:
+        using iterator_category = random_access_iterator;
+        ...
+    }
+    ...
+}
+template< ... >
+class list {
+public:
+    class iterator {
+    public:
+        using iterator_category = bidirectional_iterator;
+        ...
+    }
+    ...
+}
+```
+为了做到类型的 traits 信息可以在类型自身之外获得，标准技术是把它放进一个模板及其一个或多个特化版本中。这样的模板在标准库中有若干个，其中针对迭代器的是iterator_traits：
+```cpp
+template<class IterT>
+struct iterator_traits {
+    using iterator_category = IterT::iterator_category;
+    ...
+};
+```
+为了支持指针迭代器，iterator_traits特别针对指针类型提供一个偏特化版本，而指针的类型和随机访问迭代器类似，所以可以写出如下代码：
+```cpp
+template<class IterT>
+struct iterator_traits<IterT*> {
+    using iterator_category = random_access_iterator_tag;
+    ...
+};
+```
+当我们需要为不同的迭代器种类应用不同的代码时，traits classes 就派上用场了：
+```cpp
+template<typename IterT, typename DisT>
+void advance(IterT& iter, DisT d) {
+    if (typeid(std::iterator_traits<IterT>::iterator_category)
+        == typeid(std::random_access_iterator_tag)) {
+        ...
+    }
+}
+```
+但这些代码实际上是错误的，我们希望类型的判断能在编译期完成。iterator_category是在编译期决定的，然而if却是在运行期运作的，无法达成我们的目标。
+
+在 C++17 之前，解决这个问题的主流做法是利用函数重载（也是原书中介绍的做法）：
+```cpp
+template<typename IterT, typename DisT>
+void doAdvance(IterT& iter, DisT d, std::random_access_iterator_tag) {
+    ...
+}   
+template<typename IterT, typename DisT>
+void doAdvance(IterT& iter, DisT d, std::bidirectional_iterator_tag) {
+    ...
+}
+template<typename IterT, typename DisT>
+void doAdvance(IterT& iter, DisT d, std::input_iterator_tag) {
+    if (d < 0) {
+        throw std::out_of_range("Negative distance");       // 单向迭代器不允许负距离
+    }
+    ...
+}
+template<typename IterT, typename DisT>
+void advance(IterT& iter, DisT d) {
+    doAdvance(iter, d, std::iterator_traits<IterT>::iterator_category());
+}
+```
+在 C++17 之后，我们有了更简单有效的做法——使用if constexpr：
+```cpp
+template<typename IterT, typename DisT>
+void Advance(IterT& iter, DisT d) {
+    if constexpr (typeid(std::iterator_traits<IterT>::iterator_category)
+        == typeid(std::random_access_iterator_tag)) {
+        ...
+    }
+}
+```
+请记住：
+- Traits classes使得“类型相关信息”在编译器可用。它们以templates和“templates特化”完成实现。
+- 整合重载技术后，traits classses有可能在编译器对类型执行if..else测试。
+
+**Effective C++ 48**
+认识模板元编程
+模板元编程（Template metaprogramming，TMP）是编写基于模板的 C++ 程序并执行于编译期的过程，它并不是刻意被设计出来的，而是当初 C++ 引入模板带来的副产品，事实证明模板元编程具有强大的作用，并且现在已经成为 C++ 标准的一部分。实际上，在条款 47 中编写 traits classes 时，我们就已经在进行模板元编程了。
+由于模板元程序执行于 C++ 编译期，因此可以将一些工作从运行期转移至编译期，这可以帮助我们在编译期时发现一些原本要在运行期时才能察觉的错误，以及得到较小的可执行文件、较短的运行期、较少的内存需求。当然，副作用就是会使编译时间变长。
+模板元编程已被证明是“图灵完备”的，并且以“函数式语言”的形式发挥作用，因此在模板元编程中没有真正意义上的循环，所有循环效果只能藉由递归实现，而递归在模板元编程中是由 “递归模板具现化（recursive template instantiation）” 实现的。
+常用于引入模板元编程的例子是在编译期计算阶乘：
+```cpp
+template<unsigned n>            // Factorial<n> = n * Factorial<n-1>
+struct Factorial {
+    enum { value = n * Factorial<n-1>::value };
+};
+template<>
+struct Factorial<0> {           // 处理特殊情况：Factorial<0> = 1
+    enum { value = 1 };
+};
+std::cout << Factorial<5>::value;
+```
+模板元编程很酷，但对其进行调试可能是灾难性的，因此在实际应用中并不常见。我们可能会在下面几种情形中见到它的出场：
+确保量度单位正确。
+优化矩阵计算。
+可以生成客户定制之设计模式（custom design pattern）实现品。
+
+
 #### Effective Modern C++的相关内容（右值引用、移动语义、完美转发）
 **右值引用、移动语义、完美转发**
 当你第一次了解到移动语义（move semantics）和完美转发（perfect forwarding）的时候，它们看起来非常直观：
